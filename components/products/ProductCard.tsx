@@ -3,17 +3,7 @@ import Link from "next/link";
 
 import type { Product } from "@/lib/types/product";
 import { getStockDisplay } from "@/lib/catalog/stock-status";
-
-function formatPrice(amount: number, currency: string) {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-    }).format(amount);
-  } catch {
-    return `${amount} ${currency}`;
-  }
-}
+import { formatCatalogPrice } from "@/lib/format-product-price";
 
 type ProductCardProps = {
   product: Product;
@@ -21,27 +11,39 @@ type ProductCardProps = {
 
 export function ProductCard({ product }: ProductCardProps) {
   const stock = getStockDisplay(product.stock);
+  const detailHref = `/products/${product.id}`;
 
   return (
     <article className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-muted bg-surface shadow-sm transition-shadow hover:shadow-md">
-      <div className="relative aspect-[4/3] w-full shrink-0 bg-muted">
+      <Link
+        href={detailHref}
+        className="relative aspect-[4/3] w-full shrink-0 bg-muted outline-none transition-opacity hover:opacity-95 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+        aria-label={`View ${product.name}`}
+      >
         <Image
           src={product.image}
-          alt={product.name}
+          alt=""
           fill
           sizes="(max-width: 419px) 100vw, (max-width: 1024px) 50vw, 25vw"
           className="object-cover"
         />
-      </div>
+      </Link>
 
       <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-4 lg:p-5">
         <div className="mb-2 flex flex-wrap items-start justify-between gap-2">
           <h2 className="min-w-0 flex-1 text-pretty text-[15px] font-semibold leading-snug text-secondary sm:text-base lg:text-[17px]">
             {product.name}
           </h2>
-          <span className="inline-flex w-fit shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-secondary/90">
-            {product.category}
-          </span>
+          <div className="flex max-w-[min(100%,14rem)] flex-wrap justify-end gap-1 sm:max-w-[18rem]">
+            {product.categories.map((c) => (
+              <span
+                key={c}
+                className="inline-flex w-fit shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-secondary/90"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -69,7 +71,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
 
         <p className="mb-3 text-xl font-semibold text-green-700 lg:text-2xl">
-          {formatPrice(product.price, product.currency)}
+          {formatCatalogPrice(product.price)}
         </p>
 
         <p className="mb-4 line-clamp-3 text-pretty text-sm leading-relaxed text-secondary/75 lg:text-[15px]">
@@ -77,7 +79,7 @@ export function ProductCard({ product }: ProductCardProps) {
         </p>
 
         <Link
-          href={`/products/${product.id}`}
+          href={detailHref}
           className="mt-auto inline-flex w-full items-center justify-center rounded-lg border border-primary bg-transparent py-2.5 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
           View detail

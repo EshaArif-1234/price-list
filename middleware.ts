@@ -5,6 +5,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const session = request.cookies.get("dashboard_session")?.value === "1";
 
+  if (pathname.startsWith("/api/dashboard")) {
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
+
   if (pathname.startsWith("/dashboard")) {
     if (!session) {
       const login = new URL("/login", request.url);
@@ -22,5 +29,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/login", "/api/dashboard/:path*"],
 };

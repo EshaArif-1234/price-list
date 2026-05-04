@@ -112,7 +112,7 @@ export function Header({ categories }: HeaderProps) {
                   type="search"
                   name="q"
                   autoComplete="off"
-                  placeholder="Search for products"
+                  placeholder="Search products, categories, brands…"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   onKeyDown={(e) => {
@@ -126,7 +126,9 @@ export function Header({ categories }: HeaderProps) {
 
                 <div className="flex min-h-12 w-full min-w-0 min-[420px]:w-auto min-[420px]:shrink-0 sm:min-h-[3rem]">
                   <div className="flex min-h-full min-w-0 flex-1 items-stretch border-muted bg-white min-[420px]:border-l">
-                    <span className="sr-only">Category filter</span>
+                    <span className="sr-only">
+                      Filter products by category
+                    </span>
                     <CategoryMenu
                       value={urlCategory === "" ? "all" : urlCategory}
                       options={categoryOptions}

@@ -8,12 +8,13 @@ export type ProductSpecification = {
 export type Product = {
   id: string;
   name: string;
-  category: string;
-  sku: string;
+  /** One or more taxonomy labels from Dashboard → Categories. */
+  categories: string[];
   price: number;
+  /** ISO 4217 code; catalog defaults to PKR. */
   currency: string;
   description: string;
-  /** Path under `public`, e.g. `/images/product-placeholder.svg` */
+  /** Public path, data URL (local demo), or remote URL (e.g. Cloudinary). */
   image: string;
   stock: number;
   brand: ProductBrand;

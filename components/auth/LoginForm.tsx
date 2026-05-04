@@ -5,6 +5,10 @@ import { useId, useState } from "react";
 
 import { loginAction } from "@/app/actions/auth";
 
+type LoginFormProps = {
+  loginError?: string | null;
+};
+
 function EyeIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -59,12 +63,21 @@ function SubmitButton() {
   );
 }
 
-export function LoginForm() {
+export function LoginForm({ loginError }: LoginFormProps) {
   const passwordFieldId = useId();
   const [showPassword, setShowPassword] = useState(false);
 
   return (
     <form action={loginAction} className="flex w-full flex-col gap-5" noValidate>
+      {loginError ? (
+        <p
+          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-center text-[13px] font-medium text-red-800"
+          role="alert"
+        >
+          {loginError}
+        </p>
+      ) : null}
+
       <div className="flex flex-col gap-1.5">
         <label
           htmlFor="admin-email"
@@ -77,7 +90,7 @@ export function LoginForm() {
           name="email"
           type="email"
           autoComplete="username"
-          placeholder="you@company.com"
+          placeholder="info@ambassador.pk"
           className="min-h-12 w-full rounded-lg border border-muted bg-white px-4 py-3 text-secondary outline-none ring-primary transition-shadow placeholder:text-secondary/40 focus-visible:border-transparent focus-visible:ring-2"
         />
       </div>
@@ -117,8 +130,12 @@ export function LoginForm() {
       <SubmitButton />
 
       <p className="text-center text-xs leading-relaxed text-secondary/55">
-        Demo mode: any email and password grant admin access within your browser
-        session. Replace with company SSO or credentials when ready.
+        With MongoDB configured, only registered admin accounts can sign in. The
+        default account is created automatically (
+        <span className="whitespace-nowrap font-medium text-secondary/70">
+          info@ambassador.pk
+        </span>
+        ). Without a database URL, demo mode still accepts any credentials.
       </p>
     </form>
   );

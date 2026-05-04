@@ -1,13 +1,13 @@
 import { CatalogPagination } from "@/components/products/CatalogPagination";
 import { CatalogWidth } from "@/components/layout/CatalogWidth";
 import { ProductGrid } from "@/components/products/ProductGrid";
-import { filterProducts } from "@/lib/catalog/filter-products";
 import {
   CATALOG_PAGE_SIZE,
   getCatalogPageSlice,
   parseCatalogPage,
 } from "@/lib/catalog/pagination";
-import { PRODUCTS } from "@/lib/data/products";
+import { filterProducts } from "@/lib/catalog/filter-products";
+import { getCatalogProducts } from "@/lib/catalog/server-catalog";
 
 type HomeProps = {
   searchParams: Promise<{ q?: string; category?: string; page?: string }>;
@@ -20,7 +20,8 @@ export default async function Home({ searchParams }: HomeProps) {
     typeof params.category === "string" ? params.category : undefined;
   const pageRaw = parseCatalogPage(params.page);
 
-  const filtered = filterProducts(PRODUCTS, q, category);
+  const products = await getCatalogProducts();
+  const filtered = filterProducts(products, q, category);
   const { slice, totalPages, page } = getCatalogPageSlice(
     filtered,
     pageRaw,
@@ -36,8 +37,10 @@ export default async function Home({ searchParams }: HomeProps) {
           Products
         </h1>
         <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-secondary/75 sm:text-[15px] lg:text-base lg:leading-relaxed">
-          Browse SKUs and pricing for internal reference. Filter by category or
-          search from the bar above.
+          Shows products from your MongoDB catalog when the server is
+          configured; otherwise the built-in demo list. Use the category menu
+          beside search or type to match names, categories, brands, and
+          specifications.
         </p>
       </header>
 

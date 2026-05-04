@@ -5,7 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { CatalogChrome } from "@/components/layout/CatalogChrome";
-import { getCategories } from "@/lib/data/products";
+import { getCatalogCategories } from "@/lib/catalog/server-catalog";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,12 +28,14 @@ export const metadata: Metadata = {
   description: "Company product catalog and pricing for employees.",
 };
 
-export default function RootLayout({
+export const dynamic = "force-dynamic";
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
-  const categories = getCategories();
+  const categories = await getCatalogCategories();
 
   return (
     <html

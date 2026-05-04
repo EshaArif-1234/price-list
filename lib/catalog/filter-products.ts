@@ -10,7 +10,9 @@ export function filterProducts(
 
   return products.filter((p) => {
     const matchesCategory =
-      !cat || cat === "all" || p.category.toLowerCase() === cat.toLowerCase();
+      !cat ||
+      cat === "all" ||
+      p.categories.some((c) => c.toLowerCase() === cat.toLowerCase());
 
     if (!matchesCategory) return false;
     if (!q) return true;
@@ -18,8 +20,7 @@ export function filterProducts(
     const haystack = [
       p.name,
       p.description,
-      p.sku,
-      p.category,
+      ...p.categories,
       p.brand,
       String(p.price),
       String(p.stock),

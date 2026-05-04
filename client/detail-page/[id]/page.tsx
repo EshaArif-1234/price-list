@@ -6,7 +6,8 @@ import { notFound } from "next/navigation";
 
 import { CatalogWidth } from "@/components/layout/CatalogWidth";
 import { getStockDetailText } from "@/lib/catalog/stock-status";
-import { getProductById } from "@/lib/data/products";
+import { getCatalogProductById } from "@/lib/catalog/server-catalog";
+import { formatCatalogPrice } from "@/lib/format-product-price";
 import type { ProductBrand } from "@/lib/types/product";
 
 type PageProps = {
@@ -17,23 +18,12 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { id } = await params;
-  const product = getProductById(id);
+  const product = await getCatalogProductById(id);
   if (!product) return { title: "Product" };
   return {
     title: `${product.name} — Price List`,
     description: product.description.slice(0, 160),
   };
-}
-
-function formatPrice(amount: number, currency: string) {
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-    }).format(amount);
-  } catch {
-    return `${amount} ${currency}`;
-  }
 }
 
 function stockBlock(stock: number) {
@@ -80,7 +70,7 @@ function DetailRow({
 
 export default async function ProductDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const product = getProductById(id);
+  const product = await getCatalogProductById(id);
   if (!product) notFound();
 
   return (
@@ -112,12 +102,14 @@ export default async function ProductDetailPage({ params }: PageProps) {
           </header>
 
           <dl className="rounded-lg border border-muted bg-surface px-3.5 py-1 sm:rounded-xl sm:px-5 sm:py-1">
-            <DetailRow label="Category">{product.category}</DetailRow>
+            <DetailRow label="Categories">
+              {product.categories.join(" · ")}
+            </DetailRow>
             <DetailRow label="Brand">{brandBadge(product.brand)}</DetailRow>
             <DetailRow label="Stock">{stockBlock(product.stock)}</DetailRow>
-            <DetailRow label="Price">
+            <DetailRow label="Price (PKR)">
               <span className="inline-block text-xl font-semibold tabular-nums text-green-700 min-[380px]:text-2xl sm:text-3xl">
-                {formatPrice(product.price, product.currency)}
+                {formatCatalogPrice(product.price)}
               </span>
             </DetailRow>
           </dl>

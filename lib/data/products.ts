@@ -4,17 +4,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "1",
     name: "Industrial safety gloves (pair)",
-    category: "Safety",
-    sku: "SF-GLV-001",
+    categories: ["Safety", "Equipment"],
     price: 12.5,
-    currency: "USD",
+    currency: "PKR",
     description:
       "Cut-resistant nitrile coating with reinforced palms. Sizes M–XL. Suitable for food prep lines and warehouse handling. Replace per site safety schedule or when coating shows wear.",
     image: "/images/product-placeholder.svg",
     stock: 240,
     brand: "Ambassador",
     specifications: [
-      { label: "SKU", value: "SF-GLV-001" },
       { label: "Material", value: "Nitrile blend palm, breathable liner" },
       { label: "Sizes", value: "M, L, XL" },
       { label: "ANSI cut rating", value: "Level A4" },
@@ -24,17 +22,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "2",
     name: "Warehouse barcode scanner",
-    category: "Equipment",
-    sku: "EQ-SCN-210",
+    categories: ["Equipment"],
     price: 189.0,
-    currency: "USD",
+    currency: "PKR",
     description:
       "Cordless 2D imager with charging cradle and USB receiver. Drops resistant to concrete from 1.5 m. Battery life typical shift-long operation.",
     image: "/images/product-placeholder.svg",
     stock: 18,
     brand: "Imported",
     specifications: [
-      { label: "SKU", value: "EQ-SCN-210" },
       { label: "Material", value: "Polycarbonate housing, rubber grip" },
       { label: "Connectivity", value: "Bluetooth 5.0, USB dongle included" },
       { label: "Battery", value: "Li-ion, replaceable" },
@@ -44,17 +40,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "3",
     name: "Office toner cartridge — black",
-    category: "Office",
-    sku: "OF-TNR-BK",
+    categories: ["Office"],
     price: 64.99,
-    currency: "USD",
+    currency: "PKR",
     description:
       "High yield cartridge compatible with fleet printers on list IT-42. Store sealed until installation; shake gently before first print.",
     image: "/images/product-placeholder.svg",
     stock: 0,
     brand: "Imported",
     specifications: [
-      { label: "SKU", value: "OF-TNR-BK" },
       { label: "Material", value: "Plastic housing; toner powder" },
       { label: "Color", value: "Black" },
       { label: "Approx. yield", value: "~12,000 pages @ 5% coverage" },
@@ -64,17 +58,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "4",
     name: "Heavy-duty pallet jack",
-    category: "Equipment",
-    sku: "EQ-PJ-550",
+    categories: ["Equipment"],
     price: 349.0,
-    currency: "USD",
+    currency: "PKR",
     description:
       "5500 lb capacity with polyurethane wheels and three-position control. Inspect hydraulics monthly per maintenance sheet M-PAJ-01.",
     image: "/images/product-placeholder.svg",
     stock: 5,
     brand: "Ambassador",
     specifications: [
-      { label: "SKU", value: "EQ-PJ-550" },
       { label: "Material", value: "Steel frame and forks" },
       { label: "Capacity", value: "5500 lb" },
       { label: "Wheels", value: "Polyurethane" },
@@ -84,17 +76,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "5",
     name: "First aid kit — workplace",
-    category: "Safety",
-    sku: "SF-FAK-STD",
+    categories: ["Safety"],
     price: 42.0,
-    currency: "USD",
+    currency: "PKR",
     description:
       "OSHA-oriented layout with refill slots labeled by module. Includes wall bracket. Restock consumables before monthly walkthrough.",
     image: "/images/product-placeholder.svg",
     stock: 62,
     brand: "Ambassador",
     specifications: [
-      { label: "SKU", value: "SF-FAK-STD" },
       { label: "Material", value: "ABS case; assorted sterile contents" },
       { label: "Mounting", value: "Wall bracket included" },
       { label: "Modules", value: "Bandage, burn, wound, PPE basics" },
@@ -104,17 +94,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "6",
     name: "Ergonomic keyboard",
-    category: "Office",
-    sku: "OF-KBD-ERG",
+    categories: ["Office"],
     price: 79.0,
-    currency: "USD",
+    currency: "PKR",
     description:
       "Split layout with cushioned palm rests. Wired USB-C cable included. Recommended with negative-tilt accessories for extended data entry.",
     image: "/images/product-placeholder.svg",
     stock: 33,
     brand: "Imported",
     specifications: [
-      { label: "SKU", value: "OF-KBD-ERG" },
       { label: "Material", value: "Plastic keys; silicone palm rests" },
       { label: "Layout", value: "Split ergonomic QWERTY" },
       { label: "Interface", value: "USB-C wired" },
@@ -124,17 +112,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "7",
     name: "Stainless prep table — 72″",
-    category: "Equipment",
-    sku: "EQ-TBL-72",
+    categories: ["Equipment"],
     price: 899.0,
-    currency: "USD",
+    currency: "PKR",
     description:
       "NSF-listed work surface with undershelf and bullet feet. Leveling glides included. Ships knocked down for site assembly per instruction sheet.",
     image: "/images/product-placeholder.svg",
     stock: 4,
     brand: "Ambassador",
     specifications: [
-      { label: "SKU", value: "EQ-TBL-72" },
       { label: "Material", value: "Stainless steel" },
       { label: "Dimensions", value: '72" W × 30" D × 34" H (nominal)' },
       { label: "Listing", value: "NSF (food equipment)" },
@@ -144,17 +130,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "8",
     name: "Commercial microwave — 1.2 cu ft",
-    category: "Equipment",
-    sku: "EQ-MW-120",
+    categories: ["Equipment"],
     price: 412.5,
-    currency: "USD",
+    currency: "PKR",
     description:
       "Programmable touch panel with ten power levels. Stainless cavity. Dedicated 208V circuit required; see electrical addendum.",
     image: "/images/product-placeholder.svg",
     stock: 9,
     brand: "Imported",
     specifications: [
-      { label: "SKU", value: "EQ-MW-120" },
       { label: "Material", value: "Stainless steel cavity; painted exterior" },
       { label: "Capacity", value: "1.2 cu ft" },
       { label: "Voltage", value: "208V dedicated circuit" },
@@ -164,17 +148,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "9",
     name: "Non-slip floor mat — 3′ × 5′",
-    category: "Safety",
-    sku: "SF-MAT-35",
+    categories: ["Safety"],
     price: 56.0,
-    currency: "USD",
+    currency: "PKR",
     description:
       "Grease-resistant rubber for kitchen egress paths. Hose off to clean weekly. Trim not recommended; order correct width for bay layout.",
     image: "/images/product-placeholder.svg",
     stock: 28,
     brand: "Ambassador",
     specifications: [
-      { label: "SKU", value: "SF-MAT-35" },
       { label: "Material", value: "Nitrile rubber compound" },
       { label: "Dimensions", value: "3 ft × 5 ft" },
       { label: "Thickness", value: "9 mm" },
@@ -184,17 +166,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "10",
     name: "LED high-bay fixture",
-    category: "Equipment",
-    sku: "EQ-LGT-HB",
+    categories: ["Equipment"],
     price: 134.0,
-    currency: "USD",
+    currency: "PKR",
     description:
       "5000K dimmable driver on 0–10V loop. Rated for dry locations above prep lines; consult Facilities before ceiling mount changes.",
     image: "/images/product-placeholder.svg",
     stock: 44,
     brand: "Imported",
     specifications: [
-      { label: "SKU", value: "EQ-LGT-HB" },
       { label: "Material", value: "Die-cast aluminum housing, polycarbonate lens" },
       { label: "CCT", value: "5000K" },
       { label: "Dimming", value: "0–10V" },
@@ -204,17 +184,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "11",
     name: "Bulk copy paper — case (5 reams)",
-    category: "Office",
-    sku: "OF-PAP-A4",
+    categories: ["Office"],
     price: 38.99,
-    currency: "USD",
+    currency: "PKR",
     description:
       "92 brightness letter size. Store flat away from humidity. One case minimum; adjust par level for department print volume.",
     image: "/images/product-placeholder.svg",
     stock: 120,
     brand: "Imported",
     specifications: [
-      { label: "SKU", value: "OF-PAP-A4" },
       { label: "Material", value: "Wood pulp, elemental chlorine free" },
       { label: "Size", value: 'Letter (8.5" × 11")' },
       { label: "Brightness", value: "92" },
@@ -224,17 +202,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "12",
     name: "Fire extinguisher — 10 lb ABC",
-    category: "Safety",
-    sku: "SF-EX-10",
+    categories: ["Safety"],
     price: 95.0,
-    currency: "USD",
+    currency: "PKR",
     description:
       "Annual inspection tag required before issue. Mounting bracket and seal pin in box. Train staff on PASS before placement near line.",
     image: "/images/product-placeholder.svg",
     stock: 15,
     brand: "Ambassador",
     specifications: [
-      { label: "SKU", value: "SF-EX-10" },
       { label: "Material", value: "Steel cylinder; ABC dry chemical" },
       { label: "Class", value: "ABC" },
       { label: "Agent weight", value: "10 lb" },
@@ -244,17 +220,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "13",
     name: "Dishwashing detergent — 5 gal",
-    category: "Equipment",
-    sku: "EQ-CHM-DW5",
+    categories: ["Equipment"],
     price: 72.5,
-    currency: "USD",
+    currency: "PKR",
     description:
       "Concentrated formula for conveyor machines. SDS on file at EHS. Do not mix with chlorinated sanitizers in same sump without procedure sign-off.",
     image: "/images/product-placeholder.svg",
     stock: 7,
     brand: "Imported",
     specifications: [
-      { label: "SKU", value: "EQ-CHM-DW5" },
       { label: "Material", value: "Liquid alkaline detergent concentrate" },
       { label: "Volume", value: "5 US gal" },
       { label: "Use", value: "Commercial conveyor warewashers" },
@@ -264,17 +238,15 @@ export const PRODUCTS: Product[] = [
   {
     id: "14",
     name: "Desk phone — VoIP handset",
-    category: "Office",
-    sku: "OF-PH-VP01",
+    categories: ["Office"],
     price: 118.0,
-    currency: "USD",
+    currency: "PKR",
     description:
       "PoE-capable with dual Ethernet passthrough. IT provisions MAC before deployment. Wall bracket optional per workstation survey.",
     image: "/images/product-placeholder.svg",
     stock: 21,
     brand: "Imported",
     specifications: [
-      { label: "SKU", value: "OF-PH-VP01" },
       { label: "Material", value: "ABS handset and base" },
       { label: "Protocol", value: "SIP VoIP" },
       { label: "Power", value: "PoE (IEEE 802.3af)" },
@@ -284,7 +256,12 @@ export const PRODUCTS: Product[] = [
 ];
 
 export function getCategories(products: Product[] = PRODUCTS): string[] {
-  const set = new Set(products.map((p) => p.category));
+  const set = new Set<string>();
+  for (const p of products) {
+    for (const c of p.categories) {
+      set.add(c);
+    }
+  }
   return Array.from(set).sort((a, b) => a.localeCompare(b));
 }
 

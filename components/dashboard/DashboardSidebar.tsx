@@ -8,8 +8,9 @@ type NavItem = { href: string; label: string };
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/products", label: "Products" },
+  { href: "/dashboard/categories", label: "Categories" },
   { href: "/dashboard/specifications", label: "Specifications" },
-  { href: "/", label: "View catalog" },
+  { href: "/dashboard/admin-users", label: "Admin accounts" },
 ];
 
 function navActive(pathname: string, href: string): boolean {
@@ -17,8 +18,14 @@ function navActive(pathname: string, href: string): boolean {
   if (href === "/dashboard/products") {
     return pathname.startsWith("/dashboard/products");
   }
+  if (href === "/dashboard/categories") {
+    return pathname.startsWith("/dashboard/categories");
+  }
   if (href === "/dashboard/specifications") {
     return pathname.startsWith("/dashboard/specifications");
+  }
+  if (href === "/dashboard/admin-users") {
+    return pathname.startsWith("/dashboard/admin-users");
   }
   return false;
 }
@@ -80,8 +87,20 @@ export function DashboardSidebar({ open, onNavigate }: DashboardSidebarProps) {
           })}
         </nav>
 
-        <div className="border-t border-white/10 p-3 text-xs text-white/55 xl:p-4">
-          Internal dashboard — authorized staff only.
+        <div className="border-t border-white/10 p-3 xl:p-4">
+          <Link
+            href="/"
+            onClick={onNavigate}
+            className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-white/95 transition-colors hover:bg-white/10 hover:text-white"
+          >
+            <span aria-hidden className="text-white/70">
+              ←
+            </span>
+            Back to the website
+          </Link>
+          <p className="mt-3 text-xs leading-relaxed text-white/55">
+            Internal dashboard — authorized staff only.
+          </p>
         </div>
       </aside>
     </>
