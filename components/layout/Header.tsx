@@ -80,70 +80,89 @@ export function Header({ categories }: HeaderProps) {
     pushCatalogParams({ q: searchValue, category: urlCategory });
   }
 
+  const onLoginRoute = pathname === "/login";
+
   return (
     <header className="sticky top-0 z-40 shadow-md">
       <div className="border-b border-muted bg-surface">
-        <CatalogWidth className="flex flex-col gap-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:py-4 lg:gap-8">
-          <Link href="/" className="flex w-full shrink-0 justify-center sm:w-auto sm:justify-start">
-            <Image
-              src="/images/ambassador.webp"
-              alt="Ambassador — Commercial Kitchen Equipment"
-              width={220}
-              height={72}
-              sizes="(max-width: 380px) 160px, (max-width: 640px) 200px, 220px"
-              className="h-11 w-auto object-contain object-center sm:object-left min-[360px]:h-12 sm:h-14 lg:h-16"
-              priority
-            />
-          </Link>
-
-          <div className="min-w-0 w-full sm:flex sm:max-w-xl sm:flex-1 sm:justify-end 2xl:max-w-2xl">
-            <div className="flex w-full flex-col overflow-hidden rounded-[14px] border border-muted bg-white shadow-sm ring-1 ring-black/[0.04] min-[420px]:min-h-12 min-[420px]:flex-row min-[420px]:flex-nowrap min-[420px]:rounded-full lg:min-h-[3rem]">
-              <label className="sr-only" htmlFor="catalog-search">
-                Search products
-              </label>
-              <input
-                id="catalog-search"
-                type="search"
-                name="q"
-                autoComplete="off"
-                placeholder="Search for products"
-                value={searchValue}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    applyFiltersFromCatalog();
-                  }
-                }}
-                className="min-h-12 w-full min-w-0 border-0 border-b border-muted bg-transparent px-3 py-3 text-[15px] leading-snug text-secondary placeholder:text-secondary/45 outline-none min-[420px]:min-h-12 min-[420px]:flex-1 min-[420px]:border-b-0 min-[420px]:border-r min-[420px]:text-sm sm:min-h-[3rem] sm:pl-5 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/35"
+        <CatalogWidth className="flex flex-col gap-3 py-3 sm:gap-6 sm:py-4 lg:gap-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <Link
+              href="/"
+              className="flex shrink-0 justify-center sm:justify-start"
+            >
+              <Image
+                src="/images/ambassador.webp"
+                alt="Ambassador — Commercial Kitchen Equipment"
+                width={220}
+                height={72}
+                sizes="(max-width: 380px) 160px, (max-width: 640px) 200px, 220px"
+                className="h-11 w-auto object-contain object-center sm:object-left min-[360px]:h-12 sm:h-14 lg:h-16"
+                priority
               />
+            </Link>
 
-              <div className="flex min-h-12 w-full min-w-0 min-[420px]:w-auto min-[420px]:shrink-0 sm:min-h-[3rem]">
-                <div className="flex min-h-full min-w-0 flex-1 items-stretch border-muted bg-white min-[420px]:border-l">
-                  <span className="sr-only">Category filter</span>
-                  <CategoryMenu
-                    value={urlCategory === "" ? "all" : urlCategory}
-                    options={categoryOptions}
-                    disabled={isPending}
-                    onChange={(nextCat) =>
-                      pushCatalogParams({
-                        category: nextCat,
-                        q: searchValue,
-                      })
+            <div className="flex min-w-0 w-full flex-col gap-3 sm:max-w-xl sm:flex-1 sm:flex-row sm:items-center sm:justify-end sm:gap-3 2xl:max-w-2xl">
+              <div className="flex min-w-0 w-full flex-1 flex-col overflow-hidden rounded-[14px] border border-muted bg-white shadow-sm ring-1 ring-black/[0.04] min-[420px]:min-h-12 min-[420px]:flex-row min-[420px]:flex-nowrap min-[420px]:rounded-full lg:min-h-[3rem]">
+                <label className="sr-only" htmlFor="catalog-search">
+                  Search products
+                </label>
+                <input
+                  id="catalog-search"
+                  type="search"
+                  name="q"
+                  autoComplete="off"
+                  placeholder="Search for products"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyFiltersFromCatalog();
                     }
-                  />
-                </div>
+                  }}
+                  className="min-h-12 w-full min-w-0 border-0 border-b border-muted bg-transparent px-3 py-3 text-[15px] leading-snug text-secondary placeholder:text-secondary/45 outline-none min-[420px]:min-h-12 min-[420px]:flex-1 min-[420px]:border-b-0 min-[420px]:border-r min-[420px]:text-sm sm:min-h-[3rem] sm:pl-5 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/35"
+                />
 
-                <button
-                  type="button"
-                  onClick={() => applyFiltersFromCatalog()}
-                  className="flex min-h-12 min-w-12 shrink-0 items-center justify-center bg-primary px-4 text-white transition-colors hover:bg-primary/90 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-offset-0 focus-visible:ring-white/40 disabled:opacity-60 min-[420px]:min-h-full min-[420px]:min-w-[3rem] sm:min-h-[3rem] sm:min-w-[3.25rem]"
-                  disabled={isPending}
-                  aria-label="Search"
-                >
-                  <SearchIcon className="size-[1.125rem] min-[420px]:size-5" />
-                </button>
+                <div className="flex min-h-12 w-full min-w-0 min-[420px]:w-auto min-[420px]:shrink-0 sm:min-h-[3rem]">
+                  <div className="flex min-h-full min-w-0 flex-1 items-stretch border-muted bg-white min-[420px]:border-l">
+                    <span className="sr-only">Category filter</span>
+                    <CategoryMenu
+                      value={urlCategory === "" ? "all" : urlCategory}
+                      options={categoryOptions}
+                      disabled={isPending}
+                      onChange={(nextCat) =>
+                        pushCatalogParams({
+                          category: nextCat,
+                          q: searchValue,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => applyFiltersFromCatalog()}
+                    className="flex min-h-12 min-w-12 shrink-0 items-center justify-center bg-primary px-4 text-white transition-colors hover:bg-primary/90 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-offset-0 focus-visible:ring-white/40 disabled:opacity-60 min-[420px]:min-h-full min-[420px]:min-w-[3rem] sm:min-h-[3rem] sm:min-w-[3.25rem]"
+                    disabled={isPending}
+                    aria-label="Search"
+                  >
+                    <SearchIcon className="size-[1.125rem] min-[420px]:size-5" />
+                  </button>
+                </div>
               </div>
+
+              <Link
+                href="/login"
+                aria-current={onLoginRoute ? "page" : undefined}
+                className={`inline-flex min-h-12 w-full shrink-0 items-center justify-center rounded-lg border px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 sm:w-auto sm:min-w-[9.25rem] ${
+                  onLoginRoute
+                    ? "border-secondary bg-secondary text-white"
+                    : "border-secondary text-secondary hover:bg-secondary hover:text-white"
+                }`}
+              >
+                Admin login
+              </Link>
             </div>
           </div>
         </CatalogWidth>

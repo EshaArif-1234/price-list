@@ -30,3 +30,11 @@ body {
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
+
+/*
+ * Tailwind utilities on <dialog> (e.g. `flex`) override the UA stylesheet that
+ * keeps closed dialogs `display: none`, so closed modals can remain visible.
+ */
+dialog:not([open]) {
+  display: none !important;
+}
