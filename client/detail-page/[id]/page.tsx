@@ -95,8 +95,15 @@ export default async function ProductDetailPage({ params }: PageProps) {
         </div>
 
         <div className="flex min-w-0 flex-col gap-5 sm:gap-6 lg:gap-8">
-          <header className="border-l-[3px] border-primary pl-3 sm:border-l-4 sm:pl-4">
-            <h1 className="text-balance text-xl font-semibold tracking-tight text-secondary min-[360px]:text-2xl sm:text-3xl lg:text-4xl xl:text-[2.5rem] xl:leading-tight">
+          <header className="relative overflow-hidden rounded-2xl border border-secondary/[0.08] bg-gradient-to-br from-white to-secondary/[0.03] px-4 py-5 shadow-[0_1px_3px_rgba(15,76,105,0.05)] sm:rounded-[1.25rem] sm:px-6 sm:py-6 lg:px-7 lg:py-7">
+            <div
+              className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-primary/85 to-secondary/80"
+              aria-hidden
+            />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-secondary/48">
+              Product detail
+            </p>
+            <h1 className="mt-2 text-balance font-semibold tracking-tight text-secondary text-xl min-[360px]:text-2xl sm:text-3xl lg:text-4xl xl:text-[2.5rem] xl:leading-[1.12]">
               {product.name}
             </h1>
           </header>
