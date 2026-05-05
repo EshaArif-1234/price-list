@@ -42,7 +42,8 @@ export async function loginAction(formData: FormData) {
   try {
     user = await findAdminByEmail(emailRaw);
   } catch (e) {
-    console.error(e);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[login] MongoDB:", msg);
     redirect("/login?error=db");
   }
 

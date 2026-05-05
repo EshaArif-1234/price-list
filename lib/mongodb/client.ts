@@ -1,12 +1,24 @@
-import { MongoClient } from "mongodb";
+import { type MongoClientOptions, MongoClient } from "mongodb";
 
 const globalForMongo = globalThis as typeof globalThis & {
   mongoClientPromise?: Promise<MongoClient>;
 };
 
+/** Tuned for serverless: short-lived functions, occasional cold starts. */
+const clientOptions: MongoClientOptions = {
+  maxPoolSize: 10,
+  minPoolSize: 0,
+  serverSelectionTimeoutMS: 15_000,
+  connectTimeoutMS: 15_000,
+  socketTimeoutMS: 45_000,
+};
+
 /**
  * Cached MongoDB client for Next.js (serverless-friendly).
  * Set `MONGODB_URI` from Atlas → Connect → Drivers (SRV connection string).
+ *
+ * If connect fails once, the cached promise is cleared so the next request can
+ * retry (a stuck rejected promise would otherwise break login/catalog until cold start).
  */
 export async function getMongoClient(): Promise<MongoClient> {
   const uri = process.env.MONGODB_URI?.trim();
@@ -15,7 +27,11 @@ export async function getMongoClient(): Promise<MongoClient> {
   }
 
   if (!globalForMongo.mongoClientPromise) {
-    globalForMongo.mongoClientPromise = new MongoClient(uri).connect();
+    const created = new MongoClient(uri, clientOptions).connect();
+    globalForMongo.mongoClientPromise = created.catch((err: unknown) => {
+      globalForMongo.mongoClientPromise = undefined;
+      throw err;
+    });
   }
   return globalForMongo.mongoClientPromise;
 }
