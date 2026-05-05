@@ -1,6 +1,6 @@
-import Image from "next/image";
 import Link from "next/link";
 
+import { CatalogProductImage } from "@/components/products/CatalogProductImage";
 import type { Product } from "@/lib/types/product";
 import { getStockDisplay } from "@/lib/catalog/stock-status";
 import { formatCatalogPrice } from "@/lib/format-product-price";
@@ -20,7 +20,7 @@ export function ProductCard({ product }: ProductCardProps) {
         className="relative aspect-[4/3] w-full shrink-0 bg-muted outline-none transition-opacity hover:opacity-95 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
         aria-label={`View ${product.name}`}
       >
-        <Image
+        <CatalogProductImage
           src={product.image}
           alt=""
           fill

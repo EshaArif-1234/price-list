@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Image from "next/image";
+import { CatalogProductImage } from "@/components/products/CatalogProductImage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -84,7 +84,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
       <div className="grid min-w-0 gap-6 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-14">
         <div className="relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-lg border border-muted bg-muted sm:max-w-none sm:rounded-xl lg:mx-0 lg:max-w-none lg:aspect-square lg:sticky lg:top-[calc(5.5rem+env(safe-area-inset-top,0px))] xl:top-[calc(6.25rem+env(safe-area-inset-top,0px))] 2xl:top-28">
-          <Image
+          <CatalogProductImage
             src={product.image}
             alt={product.name}
             fill
