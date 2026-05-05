@@ -4,7 +4,8 @@ import { SpecificationsAdmin } from "@/components/dashboard/specifications/Speci
 
 export const metadata: Metadata = {
   title: "Specifications — Dashboard",
-  description: "Manage specification keys and values for catalog items.",
+  description:
+    "Manage reusable specification labels for products (values are set per product).",
 };
 
 export default function DashboardSpecificationsPage() {

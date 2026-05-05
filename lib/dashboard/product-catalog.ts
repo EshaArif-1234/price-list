@@ -6,7 +6,7 @@ export const PRODUCT_STORAGE_KEY = "dashboard_products_v1";
 export const PRODUCT_LIST_PAGE_SIZE = 10;
 
 export function productSeed(): Product[] {
-  return PRODUCTS.map((p) => structuredClone(p));
+  return PRODUCTS.map((p) => ({ ...structuredClone(p), active: true }));
 }
 
 function isBrand(v: unknown): v is ProductBrand {
@@ -79,6 +79,7 @@ export function normalizeProduct(x: unknown): Product | null {
       ? Math.floor(o.stock)
       : 0;
   const brand = isBrand(o.brand) ? o.brand : "Ambassador";
+  const active = o.active !== false;
 
   let specifications: Product["specifications"] = [];
   if (Array.isArray(o.specifications)) {
@@ -89,11 +90,13 @@ export function normalizeProduct(x: unknown): Product | null {
         return (
           typeof r.label === "string" &&
           typeof r.value === "string" &&
-          r.label.trim().length > 0 &&
-          r.value.trim().length > 0
+          r.label.trim().length > 0
         );
       })
-      .map((s) => ({ label: s.label.trim(), value: s.value.trim() }));
+      .map((s) => ({
+        label: s.label.trim(),
+        value: typeof s.value === "string" ? s.value.trim() : "",
+      }));
   }
 
   return {
@@ -107,6 +110,7 @@ export function normalizeProduct(x: unknown): Product | null {
     stock,
     brand,
     specifications,
+    active,
   };
 }
 

@@ -372,7 +372,14 @@ export function ProductsAdmin() {
     [],
   );
   const [brandInput, setBrandInput] = useState<ProductBrand>("Ambassador");
+  const [activeInput, setActiveInput] = useState(true);
   const [selectedSpecIds, setSelectedSpecIds] = useState<string[]>([]);
+  /** Value per specification template id (entered per product). */
+  const [specValuesById, setSpecValuesById] = useState<Record<string, string>>(
+    {},
+  );
+
+  const [activeSavingId, setActiveSavingId] = useState<string | null>(null);
 
   const dialogRef = useRef<HTMLDialogElement>(null);
   const viewDialogRef = useRef<HTMLDialogElement>(null);
@@ -555,7 +562,9 @@ export function ProductsAdmin() {
     const catFallback = categoryNames ?? categoryOptions;
     setSelectedCategoryNames(catFallback.length ? [catFallback[0]] : []);
     setBrandInput("Ambassador");
+    setActiveInput(true);
     setSelectedSpecIds([]);
+    setSpecValuesById({});
     setFormError(null);
   }
 
@@ -620,12 +629,23 @@ export function ProductsAdmin() {
       .filter((row) =>
         p.specifications.some(
           (ps) =>
-            ps.label.trim().toLowerCase() === row.key.toLowerCase() &&
-            ps.value.trim().toLowerCase() === row.value.toLowerCase(),
+            ps.label.trim().toLowerCase() === row.key.toLowerCase(),
         ),
       )
       .map((r) => r.id);
+
+    const initialSpecValues: Record<string, string> = {};
+    for (const row of specs) {
+      if (!matchedIds.includes(row.id)) continue;
+      const ps = p.specifications.find(
+        (x) => x.label.trim().toLowerCase() === row.key.toLowerCase(),
+      );
+      if (ps) initialSpecValues[row.id] = ps.value;
+    }
+
     setSelectedSpecIds(matchedIds);
+    setSpecValuesById(initialSpecValues);
+    setActiveInput(p.active !== false);
     setFormError(null);
     if (imageFileInputRef.current) imageFileInputRef.current.value = "";
     setModalOpen(true);
@@ -736,7 +756,10 @@ export function ProductsAdmin() {
 
     const specifications = specsRows
       .filter((row) => selectedSpecIds.includes(row.id))
-      .map((row) => ({ label: row.key, value: row.value }));
+      .map((row) => ({
+        label: row.key,
+        value: (specValuesById[row.id] ?? "").trim(),
+      }));
 
     setFormError(null);
 
@@ -760,6 +783,7 @@ export function ProductsAdmin() {
         currency: existing?.currency ?? "PKR",
         brand: brandInput,
         specifications,
+        active: activeInput,
       };
 
       try {
@@ -823,6 +847,7 @@ export function ProductsAdmin() {
                 price: priceNum,
                 brand: brandInput,
                 specifications,
+                active: activeInput,
               }
             : p,
         ),
@@ -840,6 +865,7 @@ export function ProductsAdmin() {
         currency: "PKR",
         brand: brandInput,
         specifications,
+        active: activeInput,
       };
       const q = searchQuery.trim().toLowerCase();
       setProducts((prev) => {
@@ -896,6 +922,28 @@ export function ProductsAdmin() {
     setProducts((prev) => prev.filter((p) => p.id !== id));
   }
 
+  async function persistProductActive(p: Product, nextActive: boolean) {
+    if (persistBackend === "api") {
+      setActiveSavingId(p.id);
+      try {
+        await dashboardRequest<Product>(`/api/dashboard/products/${p.id}`, {
+          method: "PATCH",
+          body: JSON.stringify({ ...p, active: nextActive }),
+        });
+        const list = await dashboardGet<Product[]>("/api/dashboard/products");
+        setProducts(list);
+      } finally {
+        setActiveSavingId(null);
+      }
+      return;
+    }
+    setProducts((prev) =>
+      prev.map((x) =>
+        x.id === p.id ? { ...x, active: nextActive } : x,
+      ),
+    );
+  }
+
   const canPrev = page > 1;
   const canNext = page < totalPages;
   const rangeStart =
@@ -938,9 +986,27 @@ export function ProductsAdmin() {
   }
 
   function toggleSpec(id: string) {
-    setSelectedSpecIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
-    );
+    setSelectedSpecIds((prev) => {
+      if (prev.includes(id)) {
+        setSpecValuesById((vals) => {
+          const next = { ...vals };
+          delete next[id];
+          return next;
+        });
+        return prev.filter((x) => x !== id);
+      }
+      const row = specOptions.find((r) => r.id === id);
+      setSpecValuesById((vals) => ({
+        ...vals,
+        [id]: vals[id] ?? row?.value?.trim() ?? "",
+      }));
+      return [...prev, id];
+    });
+    setFormError(null);
+  }
+
+  function setSpecValue(id: string, value: string) {
+    setSpecValuesById((prev) => ({ ...prev, [id]: value }));
   }
 
   const brandBtn =
@@ -1044,7 +1110,7 @@ export function ProductsAdmin() {
             {!hydrated || persistBackend === null
               ? "…"
               : persistBackend === "api"
-                ? "Rows persist in MongoDB. Customer storefront reads from the same catalog."
+                ? "Rows persist in MongoDB. Customer storefront lists only active products; inactive rows stay in the dashboard."
                 : "Rows stay in this browser until the API is reachable again."}
           </p>
         </div>
@@ -1085,7 +1151,10 @@ export function ProductsAdmin() {
           <>
             <ul className="divide-y divide-secondary/[0.06] xl:hidden">
               {paginated.map((p) => (
-                <li key={p.id} className="px-4 py-4 sm:px-5">
+                <li
+                  key={p.id}
+                  className={`px-4 py-4 sm:px-5 ${p.active === false ? "opacity-[0.88]" : ""}`}
+                >
                   <div className="flex gap-3">
                     <Thumb
                       src={p.image}
@@ -1093,9 +1162,43 @@ export function ProductsAdmin() {
                       className="relative size-14 sm:size-16"
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-secondary">
-                        {p.name}
-                      </p>
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <p className="truncate font-semibold text-secondary">
+                          {p.name}
+                        </p>
+                        <div className="flex shrink-0 flex-col items-end gap-1">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={p.active !== false}
+                            aria-label={
+                              p.active !== false
+                                ? `Hide ${p.name} from storefront`
+                                : `Show ${p.name} on storefront`
+                            }
+                            disabled={activeSavingId === p.id}
+                            onClick={() =>
+                              void persistProductActive(p, p.active === false)
+                            }
+                            className={`relative inline-flex h-8 w-[3.35rem] shrink-0 cursor-pointer rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-45 ${
+                              p.active !== false
+                                ? "bg-emerald-600"
+                                : "bg-secondary/25"
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none absolute top-0.5 block size-[1.625rem] rounded-full bg-white shadow transition-[transform] duration-200 ease-out ${
+                                p.active !== false
+                                  ? "translate-x-[1.45rem]"
+                                  : "translate-x-0.5"
+                              }`}
+                            />
+                          </button>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-secondary/40">
+                            {p.active !== false ? "Active" : "Inactive"}
+                          </span>
+                        </div>
+                      </div>
                       <p className="mt-1 line-clamp-2 text-[12px] text-secondary/50">
                         {p.categories.join(" · ")} · {p.brand}
                       </p>
@@ -1138,7 +1241,7 @@ export function ProductsAdmin() {
             </ul>
 
             <div className="hidden overflow-x-auto xl:block">
-              <table className="w-full min-w-[48rem] table-fixed border-collapse text-left text-[14px]">
+              <table className="w-full min-w-[54rem] table-fixed border-collapse text-left text-[14px]">
                 <thead>
                   <tr className="border-b border-secondary/[0.06] bg-secondary/[0.03]">
                     <th className="w-20 px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42">
@@ -1159,6 +1262,9 @@ export function ProductsAdmin() {
                     <th className="w-[6rem] px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42">
                       Price
                     </th>
+                    <th className="w-[6.5rem] px-4 py-3.5 text-center text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42">
+                      Active
+                    </th>
                     <th className="w-[9.5rem] px-4 py-3.5 text-right text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42">
                       <span className="sr-only">Actions</span>
                     </th>
@@ -1168,7 +1274,7 @@ export function ProductsAdmin() {
                   {paginated.map((p) => (
                     <tr
                       key={p.id}
-                      className="bg-white transition-colors hover:bg-secondary/[0.02]"
+                      className={`bg-white transition-colors hover:bg-secondary/[0.02] ${p.active === false ? "opacity-[0.88]" : ""}`}
                     >
                       <td className="px-4 py-3 align-middle">
                         <Thumb
@@ -1195,6 +1301,40 @@ export function ProductsAdmin() {
                       </td>
                       <td className="px-4 py-3 align-middle tabular-nums text-[13px] font-semibold text-primary">
                         {formatProductPrice(p.price, p.currency)}
+                      </td>
+                      <td className="px-4 py-3 align-middle">
+                        <div className="flex flex-col items-center gap-1">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={p.active !== false}
+                            aria-label={
+                              p.active !== false
+                                ? `Hide ${p.name} from storefront`
+                                : `Show ${p.name} on storefront`
+                            }
+                            disabled={activeSavingId === p.id}
+                            onClick={() =>
+                              void persistProductActive(p, p.active === false)
+                            }
+                            className={`relative inline-flex h-8 w-[3.35rem] shrink-0 cursor-pointer rounded-full border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45 ${
+                              p.active !== false
+                                ? "bg-emerald-600"
+                                : "bg-secondary/25"
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none absolute top-0.5 block size-[1.625rem] rounded-full bg-white shadow transition-[transform] duration-200 ease-out ${
+                                p.active !== false
+                                  ? "translate-x-[1.45rem]"
+                                  : "translate-x-0.5"
+                              }`}
+                            />
+                          </button>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-secondary/40">
+                            {p.active !== false ? "On" : "Off"}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right align-middle">
                         <div className="flex justify-end gap-0.5">
@@ -1504,28 +1644,68 @@ export function ProductsAdmin() {
                 />
               </div>
 
+              <div className="rounded-xl border border-secondary/10 bg-secondary/[0.02] px-3 py-3">
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    type="checkbox"
+                    checked={activeInput}
+                    onChange={(e) => setActiveInput(e.target.checked)}
+                    className="mt-1 size-4 shrink-0 rounded border-secondary/25 text-primary focus:ring-primary"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium text-secondary">
+                      Visible on storefront
+                    </span>
+                    <span className="mt-0.5 block text-[12px] leading-relaxed text-secondary/48">
+                      Uncheck to hide this product from the public catalog without
+                      deleting it.
+                    </span>
+                  </span>
+                </label>
+              </div>
+
               <fieldset>
                 <legend className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                  Specifications (optional, multi-select)
+                  Specifications (optional)
                 </legend>
-                <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-secondary/10 bg-secondary/[0.02] p-3">
+                <p className="mb-3 text-[12px] leading-relaxed text-secondary/48">
+                  Choose labels from your library, then enter the value for this
+                  product.
+                </p>
+                <div className="max-h-56 space-y-3 overflow-y-auto rounded-xl border border-secondary/10 bg-secondary/[0.02] p-3">
                   {specOptions.map((row) => (
-                    <label
-                      key={row.id}
-                      className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-[13px] hover:bg-white"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedSpecIds.includes(row.id)}
-                        onChange={() => toggleSpec(row.id)}
-                        className="mt-1 size-4 shrink-0 rounded border-secondary/25 text-primary focus:ring-primary"
-                      />
-                      <span className="text-secondary">
-                        <span className="font-medium">{row.key}</span>
-                        <span className="text-secondary/55"> — </span>
-                        <span className="text-secondary/80">{row.value}</span>
-                      </span>
-                    </label>
+                    <div key={row.id} className="rounded-lg px-2 py-1">
+                      <label className="flex cursor-pointer items-start gap-2 text-[13px] hover:bg-white">
+                        <input
+                          type="checkbox"
+                          checked={selectedSpecIds.includes(row.id)}
+                          onChange={() => toggleSpec(row.id)}
+                          className="mt-1 size-4 shrink-0 rounded border-secondary/25 text-primary focus:ring-primary"
+                        />
+                        <span className="min-w-0 flex-1 font-medium text-secondary">
+                          {row.key}
+                          {row.value.trim() ? (
+                            <span className="mt-0.5 block font-normal text-secondary/50">
+                              Template hint: {row.value}
+                            </span>
+                          ) : null}
+                        </span>
+                      </label>
+                      {selectedSpecIds.includes(row.id) ? (
+                        <label className="mt-2 block pl-6">
+                          <span className="sr-only">Value for {row.key}</span>
+                          <input
+                            type="text"
+                            value={specValuesById[row.id] ?? ""}
+                            onChange={(e) =>
+                              setSpecValue(row.id, e.target.value)
+                            }
+                            placeholder={`${row.key} — value for this product`}
+                            className={`${inputClass} text-[13px]`}
+                          />
+                        </label>
+                      ) : null}
+                    </div>
                   ))}
                   {specOptions.length === 0 ? (
                     <p className="text-[13px] text-secondary/50">
@@ -1571,12 +1751,25 @@ export function ProductsAdmin() {
           {viewing ? (
             <>
               <div className="flex shrink-0 items-start justify-between gap-3 px-4 pb-2 pt-4 sm:px-6">
-                <h2
-                  id="product-view-title"
-                  className="pr-2 text-lg font-semibold tracking-tight text-secondary sm:text-xl"
-                >
-                  {viewing.name}
-                </h2>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2
+                      id="product-view-title"
+                      className="text-lg font-semibold tracking-tight text-secondary sm:text-xl"
+                    >
+                      {viewing.name}
+                    </h2>
+                    <span
+                      className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                        viewing.active === false
+                          ? "bg-secondary/15 text-secondary/70"
+                          : "bg-emerald-100 text-emerald-800"
+                      }`}
+                    >
+                      {viewing.active === false ? "Inactive" : "Active"}
+                    </span>
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={() => setViewing(null)}
@@ -1637,7 +1830,7 @@ export function ProductsAdmin() {
                               {s.label}
                             </span>
                             <span className="text-right text-secondary/80">
-                              {s.value}
+                              {s.value.trim() ? s.value : "—"}
                             </span>
                           </div>
                         ))}

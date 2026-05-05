@@ -16,18 +16,17 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
     if (
       !body ||
       typeof body !== "object" ||
-      typeof (body as { key?: string }).key !== "string" ||
-      typeof (body as { value?: string }).value !== "string"
+      typeof (body as { key?: string }).key !== "string"
     ) {
       return NextResponse.json({ error: "Invalid payload." }, { status: 400 });
     }
     const key = (body as { key: string }).key.trim();
-    const value = (body as { value: string }).value.trim();
-    if (!key.length || !value.length) {
-      return NextResponse.json(
-        { error: "Key and value are required." },
-        { status: 400 },
-      );
+    const value =
+      typeof (body as { value?: string }).value === "string"
+        ? (body as { value: string }).value.trim()
+        : "";
+    if (!key.length) {
+      return NextResponse.json({ error: "Key is required." }, { status: 400 });
     }
     await updateSpecification({ id, key, value });
     const rows = await listSpecifications();

@@ -40,7 +40,7 @@ function loadRows(): DashboardSpecificationRow[] {
         key: row.key.trim(),
         value: row.value.trim(),
       }))
-      .filter((row) => row.key.length > 0 || row.value.length > 0);
+      .filter((row) => row.key.length > 0);
   } catch {
     return SPECIFICATION_DEFAULT_SEED;
   }
@@ -210,10 +210,7 @@ function TableSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <tr key={i} className="border-b border-secondary/[0.06]">
           <td className="px-4 py-4 lg:px-6">
-            <div className="h-6 w-28 animate-pulse rounded-md bg-secondary/[0.08]" />
-          </td>
-          <td className="px-4 py-4 lg:px-6">
-            <div className="h-6 max-w-[14rem] animate-pulse rounded-md bg-secondary/[0.06]" />
+            <div className="h-6 w-36 animate-pulse rounded-md bg-secondary/[0.08]" />
           </td>
           <td className="px-4 py-4 text-right lg:px-6">
             <div className="ml-auto h-10 w-24 animate-pulse rounded-lg bg-secondary/[0.06]" />
@@ -233,13 +230,12 @@ function MobileRowSkeleton() {
           className="border-b border-secondary/[0.06] px-4 py-4 sm:px-5"
         >
           <div className="flex items-start justify-between gap-3">
-            <div className="h-7 w-24 animate-pulse rounded-lg bg-secondary/[0.08]" />
+            <div className="h-7 w-28 animate-pulse rounded-lg bg-secondary/[0.08]" />
             <div className="flex gap-1">
               <div className="size-11 animate-pulse rounded-lg bg-secondary/[0.06] sm:size-10" />
               <div className="size-11 animate-pulse rounded-lg bg-secondary/[0.06] sm:size-10" />
             </div>
           </div>
-          <div className="mt-3 h-10 max-w-full animate-pulse rounded-md bg-secondary/[0.06]" />
         </li>
       ))}
     </>
@@ -253,7 +249,6 @@ export function SpecificationsAdmin() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [keyInput, setKeyInput] = useState("");
-  const [valueInput, setValueInput] = useState("");
   const [pendingDelete, setPendingDelete] =
     useState<DashboardSpecificationRow | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -326,7 +321,6 @@ export function SpecificationsAdmin() {
     setPendingDelete(null);
     setEditingId(null);
     setKeyInput("");
-    setValueInput("");
     setModalOpen(true);
   }, []);
 
@@ -334,7 +328,6 @@ export function SpecificationsAdmin() {
     setPendingDelete(null);
     setEditingId(row.id);
     setKeyInput(row.key);
-    setValueInput(row.value);
     setModalOpen(true);
   }, []);
 
@@ -342,7 +335,6 @@ export function SpecificationsAdmin() {
     setModalOpen(false);
     setEditingId(null);
     setKeyInput("");
-    setValueInput("");
   }, []);
 
   const requestDelete = useCallback(
@@ -356,8 +348,12 @@ export function SpecificationsAdmin() {
   async function handleSave(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const key = keyInput.trim();
-    const value = valueInput.trim();
-    if (!key || !value) return;
+    if (!key) return;
+
+    const existingRow = editingId
+      ? rows.find((r) => r.id === editingId)
+      : null;
+    const value = existingRow?.value?.trim() ?? "";
 
     if (dashboardUsesMongoDb()) {
       try {
@@ -375,7 +371,7 @@ export function SpecificationsAdmin() {
               body: JSON.stringify({
                 id: crypto.randomUUID(),
                 key,
-                value,
+                value: "",
               }),
             },
           );
@@ -393,14 +389,14 @@ export function SpecificationsAdmin() {
     if (editingId) {
       setRows((prev) =>
         prev.map((r) =>
-          r.id === editingId ? { ...r, key, value } : r,
+          r.id === editingId ? { ...r, key, value: r.value } : r,
         ),
       );
     } else {
       setRows((prev) => {
         const next = [
           ...prev,
-          { id: crypto.randomUUID(), key, value },
+          { id: crypto.randomUUID(), key, value: "" },
         ];
         const lastPage = Math.max(1, Math.ceil(next.length / pageSize));
         setPage(lastPage);
@@ -463,9 +459,8 @@ export function SpecificationsAdmin() {
   /** Below `lg`, sidebar is a drawer — use stacked rows; from `lg`, fixed sidebar + table. */
   const tableBlock = (
     <>
-      <table className="w-full min-w-[36rem] table-fixed border-collapse text-left text-[14px]">
+      <table className="w-full min-w-[20rem] table-fixed border-collapse text-left text-[14px]">
         <colgroup>
-          <col className="w-[26%]" />
           <col />
           <col className="w-[8.5rem]" />
         </colgroup>
@@ -475,13 +470,7 @@ export function SpecificationsAdmin() {
               scope="col"
               className="px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42 lg:px-6"
             >
-              Key
-            </th>
-            <th
-              scope="col"
-              className="px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42 lg:px-6"
-            >
-              Value
+              Label
             </th>
             <th
               scope="col"
@@ -501,9 +490,6 @@ export function SpecificationsAdmin() {
                 <span className="inline-flex max-w-full rounded-lg bg-secondary/[0.06] px-2.5 py-1 text-[13px] font-medium tracking-tight text-secondary">
                   <span className="truncate">{row.key}</span>
                 </span>
-              </td>
-              <td className="px-4 py-4 align-middle text-secondary/[0.82] lg:px-6">
-                <span className="line-clamp-2 leading-snug">{row.value}</span>
               </td>
               <td className="px-4 py-4 text-right align-middle lg:px-6">
                 <div className="flex justify-end gap-0.5">
@@ -560,8 +546,8 @@ export function SpecificationsAdmin() {
             Specifications
           </h1>
           <p className="text-[15px] leading-relaxed text-secondary/58">
-            Define reusable attribute pairs used on product detail pages. Labels
-            map to storefront specification rows.
+            Add reusable specification labels. Enter each value when editing a
+            product — the storefront shows label and value on the detail page.
           </p>
         </div>
 
@@ -590,7 +576,7 @@ export function SpecificationsAdmin() {
               Attribute library
             </h2>
             <p className="mt-0.5 text-[13px] leading-snug text-secondary/48">
-              Keys appear as labels; values render beside them on the detail view.
+              Labels listed here appear as choices when you edit products.
             </p>
           </div>
         </div>
@@ -605,20 +591,14 @@ export function SpecificationsAdmin() {
               <MobileRowSkeleton />
             </ul>
             <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full min-w-[36rem] table-fixed border-collapse text-left text-[14px]">
+              <table className="w-full min-w-[20rem] table-fixed border-collapse text-left text-[14px]">
                 <thead>
                   <tr className="border-b border-secondary/[0.06] bg-secondary/[0.03]">
                     <th
                       scope="col"
                       className="px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42 lg:px-6"
                     >
-                      Key
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42 lg:px-6"
-                    >
-                      Value
+                      Label
                     </th>
                     <th
                       scope="col"
@@ -644,7 +624,7 @@ export function SpecificationsAdmin() {
                 No specifications yet
               </p>
               <p className="mt-2 text-[13px] leading-relaxed text-secondary/48">
-                Create your first attribute pair to reuse across products.
+                Create your first label to reuse when editing products.
               </p>
               <button
                 type="button"
@@ -684,8 +664,10 @@ export function SpecificationsAdmin() {
                       </button>
                     </div>
                   </div>
-                  <p className="mt-3 break-words text-[14px] leading-relaxed text-secondary/[0.82]">
-                    {row.value}
+                  <p className="mt-2 break-words text-[13px] leading-relaxed text-secondary/45">
+                    {row.value.trim()
+                      ? `Template hint: ${row.value}`
+                      : "Set the value on each product."}
                   </p>
                 </li>
               ))}
@@ -769,7 +751,7 @@ export function SpecificationsAdmin() {
               {editingId ? "Edit specification" : "New specification"}
             </h2>
             <p className="text-[13px] leading-relaxed text-secondary/52">
-              Use a clear label for the key and a concise factual value.
+              Enter the specification label only. Values are filled in per product.
             </p>
           </div>
           <button
@@ -793,7 +775,7 @@ export function SpecificationsAdmin() {
                   htmlFor="spec-key"
                   className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42"
                 >
-                  Key
+                  Label
                 </label>
                 <input
                   ref={keyInputRef}
@@ -802,23 +784,6 @@ export function SpecificationsAdmin() {
                   value={keyInput}
                   onChange={(e) => setKeyInput(e.target.value)}
                   placeholder="e.g. Material"
-                  autoComplete="off"
-                  className={inputClass}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="spec-value"
-                  className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42"
-                >
-                  Value
-                </label>
-                <input
-                  id="spec-value"
-                  name="value"
-                  value={valueInput}
-                  onChange={(e) => setValueInput(e.target.value)}
-                  placeholder="e.g. Stainless steel"
                   autoComplete="off"
                   className={inputClass}
                 />

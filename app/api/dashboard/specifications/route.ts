@@ -26,16 +26,21 @@ export async function POST(req: Request) {
       !body ||
       typeof body !== "object" ||
       typeof (body as DashboardSpecificationRow).id !== "string" ||
-      typeof (body as DashboardSpecificationRow).key !== "string" ||
-      typeof (body as DashboardSpecificationRow).value !== "string"
+      typeof (body as DashboardSpecificationRow).key !== "string"
     ) {
       return NextResponse.json({ error: "Invalid specification payload." }, { status: 400 });
     }
     const row = body as DashboardSpecificationRow;
+    const key = row.key.trim();
+    const value =
+      typeof row.value === "string" ? row.value.trim() : "";
+    if (!key.length) {
+      return NextResponse.json({ error: "Key is required." }, { status: 400 });
+    }
     await insertSpecification({
       id: row.id.trim(),
-      key: row.key.trim(),
-      value: row.value.trim(),
+      key,
+      value,
     });
     const rows = await listSpecifications();
     return NextResponse.json(rows);

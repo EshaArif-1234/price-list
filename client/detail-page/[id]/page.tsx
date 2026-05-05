@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { CatalogProductImage } from "@/components/products/CatalogProductImage";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-
+import { CatalogProductImage } from "@/components/products/CatalogProductImage";
 import { CatalogWidth } from "@/components/layout/CatalogWidth";
+import { BackToCatalogLink } from "@/components/catalog/BackToCatalogLink";
 import { getStockDetailText } from "@/lib/catalog/stock-status";
 import { getCatalogProductById } from "@/lib/catalog/server-catalog";
 import { formatCatalogPrice } from "@/lib/format-product-price";
@@ -75,12 +74,11 @@ export default async function ProductDetailPage({ params }: PageProps) {
 
   return (
     <CatalogWidth className="flex min-w-0 flex-1 flex-col py-5 sm:py-7 lg:py-10 xl:py-12">
-      <Link
-        href="/"
+      <BackToCatalogLink
         className="mb-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-secondary px-4 py-2.5 text-sm font-semibold text-secondary transition-colors hover:bg-secondary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 active:bg-secondary/90 sm:mb-6 sm:w-fit sm:justify-start sm:py-3 md:min-w-[11rem]"
       >
         ← Back to products
-      </Link>
+      </BackToCatalogLink>
 
       <div className="grid min-w-0 gap-6 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-14">
         <div className="relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-lg border border-muted bg-muted sm:max-w-none sm:rounded-xl lg:mx-0 lg:max-w-none lg:aspect-square lg:sticky lg:top-[calc(5.5rem+env(safe-area-inset-top,0px))] xl:top-[calc(6.25rem+env(safe-area-inset-top,0px))] 2xl:top-28">
@@ -145,7 +143,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
                       {spec.label}
                     </dt>
                     <dd className="min-w-0 break-words text-sm leading-relaxed text-secondary/85 hyphens-auto sm:text-base">
-                      {spec.value}
+                      {spec.value.trim() ? spec.value : "—"}
                     </dd>
                   </div>
                 ))}

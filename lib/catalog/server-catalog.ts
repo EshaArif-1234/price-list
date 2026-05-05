@@ -21,7 +21,7 @@ export const getCatalogProducts = cache(async (): Promise<Product[]> => {
   const uri = process.env.MONGODB_URI?.trim();
   if (!uri) {
     logCatalogConfig();
-    return PRODUCTS;
+    return PRODUCTS.filter((p) => p.active !== false);
   }
 
   try {
@@ -36,10 +36,10 @@ export const getCatalogProducts = cache(async (): Promise<Product[]> => {
         httpsImageUrls: https,
       });
     }
-    return products;
+    return products.filter((p) => p.active !== false);
   } catch (e) {
     console.error("[catalog] MongoDB unavailable:", e);
-    return PRODUCTS;
+    return PRODUCTS.filter((p) => p.active !== false);
   }
 });
 

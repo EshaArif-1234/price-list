@@ -19,4 +19,9 @@ export type Product = {
   stock: number;
   brand: ProductBrand;
   specifications: ProductSpecification[];
+  /**
+   * When false, hidden from the public catalog. Omitted or true = visible.
+   * Dashboard/API normalize missing legacy rows as visible.
+   */
+  active?: boolean;
 };

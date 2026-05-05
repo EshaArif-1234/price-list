@@ -1,20 +1,13 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export type CatalogPaginationQuery = {
   q?: string;
   category?: string;
+  stock?: string;
 };
-
-function buildHref(page: number, query: CatalogPaginationQuery) {
-  const params = new URLSearchParams();
-  if (query.q?.trim()) params.set("q", query.q.trim());
-  if (query.category && query.category !== "all") {
-    params.set("category", query.category);
-  }
-  if (page > 1) params.set("page", String(page));
-  const qs = params.toString();
-  return qs ? `/?${qs}` : "/";
-}
 
 type CatalogPaginationProps = {
   page: number;
@@ -27,6 +20,23 @@ export function CatalogPagination({
   totalPages,
   query,
 }: CatalogPaginationProps) {
+  const pathname = usePathname();
+  const basePath = pathname === "/client/product" ? "/client/product" : "/";
+
+  function buildHref(pageNum: number): string {
+    const params = new URLSearchParams();
+    if (query.q?.trim()) params.set("q", query.q.trim());
+    if (query.category && query.category !== "all") {
+      params.set("category", query.category);
+    }
+    if (query.stock === "in" || query.stock === "out") {
+      params.set("stock", query.stock);
+    }
+    if (pageNum > 1) params.set("page", String(pageNum));
+    const qs = params.toString();
+    return qs ? `${basePath}?${qs}` : basePath;
+  }
+
   if (totalPages <= 1) return null;
 
   const prevPage = page - 1;
@@ -47,7 +57,7 @@ export function CatalogPagination({
     >
       <div className="flex flex-wrap items-center justify-center gap-2">
         {canPrev ? (
-          <Link href={buildHref(prevPage, query)} className={btn}>
+          <Link href={buildHref(prevPage)} className={btn}>
             Previous
           </Link>
         ) : (
@@ -56,7 +66,7 @@ export function CatalogPagination({
           </span>
         )}
         {canNext ? (
-          <Link href={buildHref(nextPage, query)} className={btnPrimary}>
+          <Link href={buildHref(nextPage)} className={btnPrimary}>
             Next
           </Link>
         ) : (

@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 
 import { CatalogProductImage } from "@/components/products/CatalogProductImage";
 import type { Product } from "@/lib/types/product";
+import { rememberCatalogNavigationState } from "@/lib/catalog/catalog-session";
 import { getStockDisplay } from "@/lib/catalog/stock-status";
 import { formatCatalogPrice } from "@/lib/format-product-price";
 
@@ -14,9 +17,13 @@ export function ProductCard({ product }: ProductCardProps) {
   const detailHref = `/products/${product.id}`;
 
   return (
-    <article className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-muted bg-surface shadow-sm transition-shadow hover:shadow-md">
+    <article
+      id={`catalog-product-${product.id}`}
+      className="flex h-full min-h-0 min-w-0 scroll-mt-28 flex-col overflow-hidden rounded-lg border border-muted bg-surface shadow-sm transition-shadow hover:shadow-md sm:scroll-mt-32"
+    >
       <Link
         href={detailHref}
+        onClick={() => rememberCatalogNavigationState(product.id)}
         className="relative aspect-[4/3] w-full shrink-0 bg-muted outline-none transition-opacity hover:opacity-95 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
         aria-label={`View ${product.name}`}
       >
@@ -80,6 +87,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <Link
           href={detailHref}
+          onClick={() => rememberCatalogNavigationState(product.id)}
           className="mt-auto inline-flex w-full items-center justify-center rounded-lg border border-primary bg-transparent py-2.5 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
         >
           View detail
