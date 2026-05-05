@@ -34,6 +34,18 @@ function normalizeCategories(o: Record<string, unknown>): string[] {
   return ["Uncategorized"];
 }
 
+/** Stored value may be a string URL or a nested Cloudinary-style object. */
+function extractImageField(raw: unknown): string {
+  if (typeof raw === "string") return raw.trim();
+  if (!raw || typeof raw !== "object") return "";
+  const o = raw as Record<string, unknown>;
+  for (const key of ["secure_url", "url", "src"] as const) {
+    const v = o[key];
+    if (typeof v === "string" && v.trim()) return v.trim();
+  }
+  return "";
+}
+
 export function normalizeProduct(x: unknown): Product | null {
   if (!x || typeof x !== "object") return null;
   const o = x as Record<string, unknown>;
@@ -44,9 +56,10 @@ export function normalizeProduct(x: unknown): Product | null {
   const categories = normalizeCategories(o);
   const description =
     typeof o.description === "string" ? o.description : "";
-  let image =
-    typeof o.image === "string" ? o.image.trim() : "";
+  let image = extractImageField(o.image);
   if (!image) {
+    image = "/images/product-placeholder.svg";
+  } else if (image.startsWith("blob:")) {
     image = "/images/product-placeholder.svg";
   } else if (
     !image.startsWith("/") &&

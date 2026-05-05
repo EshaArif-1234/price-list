@@ -26,7 +26,17 @@ export const getCatalogProducts = cache(async (): Promise<Product[]> => {
 
   try {
     const { listProducts } = await import("@/lib/mongodb/repositories");
-    return await listProducts();
+    const products = await listProducts();
+    if (process.env.CATALOG_DEBUG === "1") {
+      const https = products.filter((p) =>
+        /^https:\/\//i.test(p.image),
+      ).length;
+      console.log("[catalog] mongo products:", {
+        count: products.length,
+        httpsImageUrls: https,
+      });
+    }
+    return products;
   } catch (e) {
     console.error("[catalog] MongoDB unavailable:", e);
     return PRODUCTS;

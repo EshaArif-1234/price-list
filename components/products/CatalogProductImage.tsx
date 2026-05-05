@@ -29,10 +29,6 @@ function normalizeRemoteSrc(src: string): string {
   return t;
 }
 
-function isLikelyCloudinary(url: string): boolean {
-  return /cloudinary\.com/i.test(url);
-}
-
 /**
  * Storefront images: `next/image` for paths under `public/` only.
  * Remote URLs use `<img>` so production does not depend on the image optimizer.
@@ -74,9 +70,6 @@ export function CatalogProductImage({
         loading={priority ? "eager" : "lazy"}
         decoding="async"
         fetchPriority={priority ? "high" : undefined}
-        referrerPolicy={
-          isLikelyCloudinary(normalized) ? "no-referrer" : undefined
-        }
         onError={() => setBroken(true)}
       />
     );
