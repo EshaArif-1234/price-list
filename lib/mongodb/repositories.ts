@@ -1,7 +1,6 @@
 import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
 import { normalizeProduct } from "@/lib/dashboard/product-catalog";
 import type { DashboardSpecificationRow } from "@/lib/dashboard/specification-catalog";
-import { SPECIFICATION_DEFAULT_SEED } from "@/lib/dashboard/specification-catalog";
 import type { Product } from "@/lib/types/product";
 
 import { getMongoDb } from "./client";
@@ -111,14 +110,7 @@ export async function listSpecifications(): Promise<DashboardSpecificationRow[]>
   const db = await getMongoDb();
   const col = db.collection<SpecificationDoc>(COLLECTIONS.specifications);
   if ((await col.countDocuments()) === 0) {
-    await col.insertMany(
-      SPECIFICATION_DEFAULT_SEED.map((s) => ({
-        _id: s.id,
-        key: s.key,
-        value: s.value,
-      })),
-    );
-    return [...SPECIFICATION_DEFAULT_SEED];
+    return [];
   }
   const docs = await col.find({}).toArray();
   return docs.map((d) => ({

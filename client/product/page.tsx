@@ -83,7 +83,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <p className="mt-2 text-pretty text-sm leading-relaxed text-secondary/70 sm:text-[15px]">
             Ambassador commercial kitchen equipment and supplies. Use the search
             bar and category menu above to narrow results — prices shown in PKR.
-            Switch tabs to browse in-stock or out-of-stock items.
+            Use ALL to see everything, or switch to In Stock / Out of Stock.
           </p>
         </div>
       </header>

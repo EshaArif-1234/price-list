@@ -12,7 +12,6 @@ import {
 
 import type { DashboardSpecificationRow } from "@/lib/dashboard/specification-catalog";
 import {
-  SPECIFICATION_DEFAULT_SEED,
   SPECIFICATION_LIST_PAGE_SIZE,
   SPECIFICATION_STORAGE_KEY,
 } from "@/lib/dashboard/specification-catalog";
@@ -23,9 +22,9 @@ function loadRows(): DashboardSpecificationRow[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(SPECIFICATION_STORAGE_KEY);
-    if (raw === null) return SPECIFICATION_DEFAULT_SEED;
+    if (raw === null) return [];
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return SPECIFICATION_DEFAULT_SEED;
+    if (!Array.isArray(parsed)) return [];
     return parsed
       .filter(
         (row): row is DashboardSpecificationRow =>
@@ -42,7 +41,7 @@ function loadRows(): DashboardSpecificationRow[] {
       }))
       .filter((row) => row.key.length > 0);
   } catch {
-    return SPECIFICATION_DEFAULT_SEED;
+    return [];
   }
 }
 

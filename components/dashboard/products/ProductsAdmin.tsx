@@ -21,10 +21,7 @@ import {
   PRODUCT_LIST_PAGE_SIZE,
   PRODUCT_STORAGE_KEY,
 } from "@/lib/dashboard/product-catalog";
-import {
-  SPECIFICATION_DEFAULT_SEED,
-  SPECIFICATION_STORAGE_KEY,
-} from "@/lib/dashboard/specification-catalog";
+import { SPECIFICATION_STORAGE_KEY } from "@/lib/dashboard/specification-catalog";
 import { formatProductPrice } from "@/lib/format-product-price";
 import type { Product, ProductBrand } from "@/lib/types/product";
 
@@ -42,12 +39,12 @@ function normalizeStoredImage(raw: string): string {
 }
 
 function loadSpecs(): DashboardSpecificationRow[] {
-  if (typeof window === "undefined") return SPECIFICATION_DEFAULT_SEED;
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(SPECIFICATION_STORAGE_KEY);
-    if (raw === null) return SPECIFICATION_DEFAULT_SEED;
+    if (raw === null) return [];
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return SPECIFICATION_DEFAULT_SEED;
+    if (!Array.isArray(parsed)) return [];
     const rows = parsed
       .filter(
         (row): row is DashboardSpecificationRow =>
@@ -63,9 +60,9 @@ function loadSpecs(): DashboardSpecificationRow[] {
         value: row.value.trim(),
       }))
       .filter((row) => row.key.length > 0 && row.value.length > 0);
-    return rows.length ? rows : SPECIFICATION_DEFAULT_SEED;
+    return rows.length ? rows : [];
   } catch {
-    return SPECIFICATION_DEFAULT_SEED;
+    return [];
   }
 }
 
@@ -347,7 +344,7 @@ export function ProductsAdmin() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const [specOptions, setSpecOptions] =
-    useState<DashboardSpecificationRow[]>(SPECIFICATION_DEFAULT_SEED);
+    useState<DashboardSpecificationRow[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
 
   const [imageInput, setImageInput] = useState("");

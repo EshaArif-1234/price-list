@@ -16,10 +16,14 @@ export function CatalogStockTabs({ active }: CatalogStockTabsProps) {
 
   function href(tab: CatalogStockTab): string {
     const p = new URLSearchParams(searchParams.toString());
-    p.set("stock", tab);
     p.delete("page");
+    if (tab === "all") {
+      p.delete("stock");
+    } else {
+      p.set("stock", tab);
+    }
     const qs = p.toString();
-    return qs ? `${basePath}?${qs}` : `${basePath}?stock=${tab}`;
+    return qs ? `${basePath}?${qs}` : basePath;
   }
 
   const tabBtn =
@@ -32,6 +36,18 @@ export function CatalogStockTabs({ active }: CatalogStockTabsProps) {
       aria-label="Filter by stock"
     >
       <Link
+        href={href("all")}
+        role="tab"
+        aria-selected={active === "all"}
+        className={`${tabBtn} ${
+          active === "all"
+            ? "border border-secondary/12 bg-white text-secondary shadow-sm"
+            : "border border-transparent text-secondary/65 hover:bg-white/70 hover:text-secondary"
+        }`}
+      >
+        ALL
+      </Link>
+      <Link
         href={href("in")}
         role="tab"
         aria-selected={active === "in"}
@@ -41,7 +57,7 @@ export function CatalogStockTabs({ active }: CatalogStockTabsProps) {
             : "border border-transparent text-secondary/65 hover:bg-white/70 hover:text-secondary"
         }`}
       >
-        In stock
+        In Stock
       </Link>
       <Link
         href={href("out")}
@@ -53,7 +69,7 @@ export function CatalogStockTabs({ active }: CatalogStockTabsProps) {
             : "border border-transparent text-secondary/65 hover:bg-white/70 hover:text-secondary"
         }`}
       >
-        Out of stock
+        Out of Stock
       </Link>
     </div>
   );

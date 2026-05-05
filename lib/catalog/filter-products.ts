@@ -1,12 +1,13 @@
 import type { Product } from "@/lib/types/product";
 
-export type CatalogStockTab = "in" | "out";
+export type CatalogStockTab = "all" | "in" | "out";
 
-/** Default listing: in-stock items (`stock=out` shows only out-of-stock). */
+/** Default: show every product (`stock=in` / `stock=out` narrow the list). */
 export function parseCatalogStockTab(
   raw: string | undefined,
 ): CatalogStockTab {
-  return raw === "out" ? "out" : "in";
+  if (raw === "in" || raw === "out") return raw;
+  return "all";
 }
 
 export function filterProducts(
@@ -22,7 +23,6 @@ export function filterProducts(
     const inStock = p.stock > 0;
     if (stockTab === "in" && !inStock) return false;
     if (stockTab === "out" && inStock) return false;
-
     const matchesCategory =
       !cat ||
       cat === "all" ||
