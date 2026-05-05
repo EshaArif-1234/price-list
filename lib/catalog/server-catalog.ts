@@ -3,10 +3,26 @@ import { cache } from "react";
 import { PRODUCTS, getCategories } from "@/lib/data/products";
 import type { Product } from "@/lib/types/product";
 
+let warnedVercelNoMongo = false;
+
+function logCatalogConfig() {
+  if (process.env.VERCEL !== "1" || warnedVercelNoMongo) return;
+  const uri = process.env.MONGODB_URI?.trim();
+  if (!uri) {
+    warnedVercelNoMongo = true;
+    console.warn(
+      "[catalog] Vercel: MONGODB_URI is not set. The public site will use static seed products (placeholder images), not your dashboard/MongoDB catalog.",
+    );
+  }
+}
+
 /** Products for the public catalog: MongoDB when configured, otherwise static seed. */
 export const getCatalogProducts = cache(async (): Promise<Product[]> => {
   const uri = process.env.MONGODB_URI?.trim();
-  if (!uri) return PRODUCTS;
+  if (!uri) {
+    logCatalogConfig();
+    return PRODUCTS;
+  }
 
   try {
     const { listProducts } = await import("@/lib/mongodb/repositories");

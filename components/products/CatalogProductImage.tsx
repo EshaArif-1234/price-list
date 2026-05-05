@@ -1,4 +1,9 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
+
+const PLACEHOLDER = "/images/product-placeholder.svg";
 
 type CatalogProductImageProps = {
   src: string;
@@ -15,22 +20,23 @@ function isPublicAssetPath(src: string): boolean {
   return t.startsWith("/") && !t.startsWith("//");
 }
 
-/** Avoid mixed-content blocks when DB has http Cloudinary URLs on an https site. */
+/** HTTPS site + http image URLs → mixed content blocked by the browser */
 function normalizeRemoteSrc(src: string): string {
   const t = src.trim();
-  if (
-    t.startsWith("http://res.cloudinary.com") ||
-    t.startsWith("http://media.cloudinary.com")
-  ) {
+  if (/^http:\/\/[\w.-]*cloudinary\.com/i.test(t)) {
     return `https://${t.slice("http://".length)}`;
   }
   return t;
 }
 
+function isLikelyCloudinary(url: string): boolean {
+  return /cloudinary\.com/i.test(url);
+}
+
 /**
  * Storefront images: `next/image` for paths under `public/` only.
- * Remote URLs (Cloudinary, etc.) and `data:` URLs use `<img>` so production
- * hosts are not blocked by the image optimizer or incomplete remotePatterns.
+ * Remote URLs use `<img>` so production does not depend on the image optimizer.
+ * Failed loads fall back to the placeholder (broken URLs, DB fallback catalog, etc.).
  */
 export function CatalogProductImage({
   src,
@@ -40,10 +46,18 @@ export function CatalogProductImage({
   className,
   priority,
 }: CatalogProductImageProps) {
-  const raw = src.trim() || "/images/product-placeholder.svg";
+  const [broken, setBroken] = useState(false);
+
+  const raw = src.trim() || PLACEHOLDER;
   const normalized = normalizeRemoteSrc(raw);
 
-  if (!isPublicAssetPath(normalized)) {
+  useEffect(() => {
+    setBroken(false);
+  }, [src]);
+
+  const effective = broken ? PLACEHOLDER : normalized;
+
+  if (!isPublicAssetPath(effective)) {
     const fillImgClass =
       fill === true
         ? ["absolute inset-0 h-full w-full object-cover", className]
@@ -54,24 +68,29 @@ export function CatalogProductImage({
     return (
       // eslint-disable-next-line @next/next/no-img-element -- intentional: reliable remote URLs on all hosts
       <img
-        src={normalized}
+        src={effective}
         alt={alt}
         className={fillImgClass || undefined}
         loading={priority ? "eager" : "lazy"}
         decoding="async"
         fetchPriority={priority ? "high" : undefined}
+        referrerPolicy={
+          isLikelyCloudinary(normalized) ? "no-referrer" : undefined
+        }
+        onError={() => setBroken(true)}
       />
     );
   }
 
   return (
     <Image
-      src={normalized}
+      src={effective}
       alt={alt}
       fill={fill}
       sizes={sizes}
       className={className}
       priority={priority}
+      onError={() => setBroken(true)}
     />
   );
 }
