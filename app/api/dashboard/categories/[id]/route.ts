@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
+import type { DashboardCategoryRow, DeleteCategoryResponse } from "@/lib/dashboard/category-catalog";
 import {
   deleteCategory,
   listCategories,
@@ -39,11 +39,19 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
 export async function DELETE(_req: Request, ctx: RouteCtx) {
   try {
     const { id } = await ctx.params;
-    await deleteCategory(id);
-    const rows = await listCategories();
-    return NextResponse.json(rows);
+    const { deletedProductCount } = await deleteCategory(id);
+    const categories = await listCategories();
+    const body: DeleteCategoryResponse = {
+      categories,
+      deletedProductCount,
+    };
+    return NextResponse.json(body);
   } catch (e) {
     console.error(e);
+    const msg = e instanceof Error ? e.message : "";
+    if (msg === "Category not found") {
+      return NextResponse.json({ error: msg }, { status: 404 });
+    }
     return NextResponse.json(
       { error: "Database unavailable. Set MONGODB_URI in .env.local." },
       { status: 503 },

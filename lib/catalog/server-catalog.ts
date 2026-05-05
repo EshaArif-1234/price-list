@@ -1,6 +1,5 @@
 import { cache } from "react";
 
-import { PRODUCTS, getCategories } from "@/lib/data/products";
 import type { Product } from "@/lib/types/product";
 
 let warnedVercelNoMongo = false;
@@ -11,17 +10,17 @@ function logCatalogConfig() {
   if (!uri) {
     warnedVercelNoMongo = true;
     console.warn(
-      "[catalog] Vercel: MONGODB_URI is not set. The public site will use static seed products (placeholder images), not your dashboard/MongoDB catalog.",
+      "[catalog] Vercel: MONGODB_URI is not set. The public catalog has no products until MongoDB is configured.",
     );
   }
 }
 
-/** Products for the public catalog: MongoDB when configured, otherwise static seed. */
+/** Products for the public catalog: MongoDB only; empty when unset or unavailable (no baked-in demo rows). */
 export const getCatalogProducts = cache(async (): Promise<Product[]> => {
   const uri = process.env.MONGODB_URI?.trim();
   if (!uri) {
     logCatalogConfig();
-    return PRODUCTS.filter((p) => p.active !== false);
+    return [];
   }
 
   try {
@@ -39,7 +38,7 @@ export const getCatalogProducts = cache(async (): Promise<Product[]> => {
     return products.filter((p) => p.active !== false);
   } catch (e) {
     console.error("[catalog] MongoDB unavailable:", e);
-    return PRODUCTS.filter((p) => p.active !== false);
+    return [];
   }
 });
 
@@ -66,7 +65,7 @@ export const getCatalogCategories = cache(async (): Promise<string[]> => {
     for (const c of p.categories) merged.add(c);
   }
 
-  if (merged.size === 0) return getCategories(PRODUCTS);
+  if (merged.size === 0) return [];
 
   return Array.from(merged).sort((a, b) => a.localeCompare(b));
 });

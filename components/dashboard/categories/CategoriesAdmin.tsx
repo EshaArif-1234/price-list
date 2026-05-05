@@ -10,12 +10,20 @@ import {
   useState,
 } from "react";
 
-import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
+import type {
+  DashboardCategoryRow,
+  DeleteCategoryResponse,
+} from "@/lib/dashboard/category-catalog";
 import {
   CATEGORY_LIST_PAGE_SIZE,
   CATEGORY_STORAGE_KEY,
 } from "@/lib/dashboard/category-catalog";
 import { dashboardGet, dashboardRequest } from "@/lib/dashboard/dashboard-fetch";
+import {
+  parseStoredProducts,
+  PRODUCT_STORAGE_KEY,
+} from "@/lib/dashboard/product-catalog";
+import { removeProductsHavingCategoryLabel } from "@/lib/dashboard/remove-products-with-category";
 
 function normalizeCategoryName(name: string): string {
   return name.trim().replace(/\s+/g, " ");
@@ -245,6 +253,7 @@ export function CategoriesAdmin() {
     "local",
   );
   const [loadWarning, setLoadWarning] = useState<string | null>(null);
+  const [categoryNotice, setCategoryNotice] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -276,6 +285,12 @@ export function CategoriesAdmin() {
       setHydrated(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!categoryNotice) return;
+    const t = window.setTimeout(() => setCategoryNotice(null), 10000);
+    return () => window.clearTimeout(t);
+  }, [categoryNotice]);
 
   useEffect(() => {
     let cancelled = false;
@@ -457,16 +472,23 @@ export function CategoriesAdmin() {
 
   async function confirmDeleteCategory() {
     if (!pendingDelete) return;
-    const id = pendingDelete.id;
+    const row = pendingDelete;
+    const id = row.id;
+    const categoryLabel = row.name;
     setPendingDelete(null);
 
     if (persistBackend === "api") {
       try {
-        const next = await dashboardRequest<DashboardCategoryRow[]>(
+        const res = await dashboardRequest<DeleteCategoryResponse>(
           `/api/dashboard/categories/${id}`,
           { method: "DELETE" },
         );
-        setRows(next);
+        setRows(res.categories);
+        if (res.deletedProductCount > 0) {
+          setCategoryNotice(
+            `Removed ${res.deletedProductCount} product${res.deletedProductCount === 1 ? "" : "s"} that used "${categoryLabel.trim()}".`,
+          );
+        }
       } catch {
         setRows((prev) => prev.filter((r) => r.id !== id));
       }
@@ -474,6 +496,21 @@ export function CategoriesAdmin() {
     }
 
     setRows((prev) => prev.filter((r) => r.id !== id));
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(PRODUCT_STORAGE_KEY);
+      const products = parseStoredProducts(raw);
+      const next = removeProductsHavingCategoryLabel(products, categoryLabel);
+      const removed = products.length - next.length;
+      if (removed > 0) {
+        window.localStorage.setItem(PRODUCT_STORAGE_KEY, JSON.stringify(next));
+        setCategoryNotice(
+          `Removed ${removed} product${removed === 1 ? "" : "s"} that used "${categoryLabel.trim()}".`,
+        );
+      }
+    } catch {
+      /* ignore corrupt local storage */
+    }
   }
 
   const canPrev = page > 1;
@@ -627,6 +664,22 @@ export function CategoriesAdmin() {
             className={`${ghostBtn} shrink-0`}
           >
             Retry server
+          </button>
+        </div>
+      ) : null}
+
+      {categoryNotice ? (
+        <div
+          className="flex flex-col gap-3 rounded-xl border border-sky-200/90 bg-sky-50 px-4 py-3 text-[13px] text-sky-950 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+          role="status"
+        >
+          <p className="min-w-0 leading-relaxed">{categoryNotice}</p>
+          <button
+            type="button"
+            onClick={() => setCategoryNotice(null)}
+            className={`${ghostBtn} shrink-0`}
+          >
+            Dismiss
           </button>
         </div>
       ) : null}
@@ -904,8 +957,10 @@ export function CategoriesAdmin() {
                   id="delete-category-dialog-desc"
                   className="text-[13px] leading-relaxed text-secondary/55"
                 >
-                  This label will be removed from the admin list. Existing
-                  products keep any assignments to this name until you edit them.
+                  This label will be removed from the admin list. Every product
+                  that lists this category will be deleted from the catalog
+                  (server or this browser, depending on where you manage
+                  products).
                 </p>
               </div>
             </div>

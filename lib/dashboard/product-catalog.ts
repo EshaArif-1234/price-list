@@ -1,13 +1,8 @@
 import type { Product, ProductBrand } from "@/lib/types/product";
-import { PRODUCTS } from "@/lib/data/products";
 
 export const PRODUCT_STORAGE_KEY = "dashboard_products_v1";
 
 export const PRODUCT_LIST_PAGE_SIZE = 10;
-
-export function productSeed(): Product[] {
-  return PRODUCTS.map((p) => ({ ...structuredClone(p), active: true }));
-}
 
 function isBrand(v: unknown): v is ProductBrand {
   return v === "Ambassador" || v === "Imported";
@@ -115,15 +110,14 @@ export function normalizeProduct(x: unknown): Product | null {
 }
 
 export function parseStoredProducts(raw: string | null): Product[] {
-  if (!raw) return productSeed();
+  if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return productSeed();
-    const rows = parsed
+    if (!Array.isArray(parsed)) return [];
+    return parsed
       .map(normalizeProduct)
       .filter((p): p is Product => p !== null);
-    return rows.length ? rows : productSeed();
   } catch {
-    return productSeed();
+    return [];
   }
 }

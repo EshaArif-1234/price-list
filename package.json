@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:remove-seed-categories": "node scripts/remove-seed-categories.mjs"
+    "db:remove-seed-categories": "node scripts/remove-seed-categories.mjs",
+    "db:remove-seed-products": "node scripts/remove-seed-products.mjs",
+    "db:remove-seed-data": "node scripts/remove-seed-categories.mjs && node scripts/remove-seed-products.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

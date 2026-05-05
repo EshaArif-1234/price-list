@@ -3,6 +3,11 @@ export type DashboardCategoryRow = {
   name: string;
 };
 
+export type DeleteCategoryResponse = {
+  categories: DashboardCategoryRow[];
+  deletedProductCount: number;
+};
+
 export const CATEGORY_LIST_PAGE_SIZE = 10;
 
 export const CATEGORY_STORAGE_KEY = "dashboard_categories_v1";

@@ -1,5 +1,5 @@
 import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
-import { normalizeProduct, productSeed } from "@/lib/dashboard/product-catalog";
+import { normalizeProduct } from "@/lib/dashboard/product-catalog";
 import type { DashboardSpecificationRow } from "@/lib/dashboard/specification-catalog";
 import { SPECIFICATION_DEFAULT_SEED } from "@/lib/dashboard/specification-catalog";
 import type { Product } from "@/lib/types/product";
@@ -23,16 +23,7 @@ export async function listProducts(): Promise<Product[]> {
   const db = await getMongoDb();
   const col = db.collection<ProductDoc>(COLLECTIONS.products);
   if ((await col.countDocuments()) === 0) {
-    const seed = productSeed();
-    if (seed.length > 0) {
-      await col.insertMany(
-        seed.map((p) => {
-          const { id, ...fields } = p;
-          return { _id: id, ...fields };
-        }),
-      );
-    }
-    return seed;
+    return [];
   }
   const docs = await col.find({}).toArray();
   const out: Product[] = [];
@@ -100,11 +91,20 @@ export async function updateCategory(row: DashboardCategoryRow): Promise<void> {
   }
 }
 
-export async function deleteCategory(id: string): Promise<void> {
+export async function deleteCategory(
+  id: string,
+): Promise<{ deletedProductCount: number }> {
   const db = await getMongoDb();
-  await db.collection<CategoryDoc>(COLLECTIONS.categories).deleteOne({
-    _id: id,
-  });
+  const catCol = db.collection<CategoryDoc>(COLLECTIONS.categories);
+  const doc = await catCol.findOne({ _id: id });
+  if (!doc) {
+    throw new Error("Category not found");
+  }
+  const name = String(doc.name).trim();
+  const prodCol = db.collection<ProductDoc>(COLLECTIONS.products);
+  const productResult = await prodCol.deleteMany({ categories: name });
+  await catCol.deleteOne({ _id: id });
+  return { deletedProductCount: productResult.deletedCount };
 }
 
 export async function listSpecifications(): Promise<DashboardSpecificationRow[]> {
