@@ -1,5 +1,4 @@
 import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
-import { CATEGORY_DEFAULT_SEED } from "@/lib/dashboard/category-catalog";
 import { normalizeProduct, productSeed } from "@/lib/dashboard/product-catalog";
 import type { DashboardSpecificationRow } from "@/lib/dashboard/specification-catalog";
 import { SPECIFICATION_DEFAULT_SEED } from "@/lib/dashboard/specification-catalog";
@@ -76,17 +75,6 @@ export async function deleteProduct(id: string): Promise<void> {
 export async function listCategories(): Promise<DashboardCategoryRow[]> {
   const db = await getMongoDb();
   const col = db.collection<CategoryDoc>(COLLECTIONS.categories);
-  if ((await col.countDocuments()) === 0) {
-    await col.insertMany(
-      CATEGORY_DEFAULT_SEED.map((c) => ({
-        _id: c.id,
-        name: c.name,
-      })),
-    );
-    return [...CATEGORY_DEFAULT_SEED].sort((a, b) =>
-      a.name.localeCompare(b.name),
-    );
-  }
   const docs = await col.find({}).sort({ name: 1 }).toArray();
   return docs.map((d) => ({
     id: String(d._id),

@@ -14,10 +14,7 @@ import {
 
 import type { DashboardSpecificationRow } from "@/lib/dashboard/specification-catalog";
 import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
-import {
-  CATEGORY_DEFAULT_SEED,
-  CATEGORY_STORAGE_KEY,
-} from "@/lib/dashboard/category-catalog";
+import { CATEGORY_STORAGE_KEY } from "@/lib/dashboard/category-catalog";
 import { dashboardGet, dashboardRequest, dashboardUploadImage } from "@/lib/dashboard/dashboard-fetch";
 import {
   parseStoredProducts,
@@ -74,20 +71,16 @@ function loadSpecs(): DashboardSpecificationRow[] {
 
 function loadCategoryNames(): string[] {
   if (typeof window === "undefined") {
-    return CATEGORY_DEFAULT_SEED.map((c) => c.name);
+    return [];
   }
   try {
     const raw = window.localStorage.getItem(CATEGORY_STORAGE_KEY);
     if (raw === null) {
-      return CATEGORY_DEFAULT_SEED.map((c) => c.name).sort((a, b) =>
-        a.localeCompare(b),
-      );
+      return [];
     }
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) {
-      return CATEGORY_DEFAULT_SEED.map((c) => c.name).sort((a, b) =>
-        a.localeCompare(b),
-      );
+      return [];
     }
     const names = parsed
       .filter(
@@ -101,13 +94,9 @@ function loadCategoryNames(): string[] {
     const uniq = [...new Set(names)];
     return uniq.length
       ? uniq.sort((a, b) => a.localeCompare(b))
-      : CATEGORY_DEFAULT_SEED.map((c) => c.name).sort((a, b) =>
-          a.localeCompare(b),
-        );
+      : [];
   } catch {
-    return CATEGORY_DEFAULT_SEED.map((c) => c.name).sort((a, b) =>
-      a.localeCompare(b),
-    );
+    return [];
   }
 }
 
@@ -359,9 +348,7 @@ export function ProductsAdmin() {
 
   const [specOptions, setSpecOptions] =
     useState<DashboardSpecificationRow[]>(SPECIFICATION_DEFAULT_SEED);
-  const [categoryOptions, setCategoryOptions] = useState<string[]>(() =>
-    CATEGORY_DEFAULT_SEED.map((c) => c.name).sort((a, b) => a.localeCompare(b)),
-  );
+  const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
 
   const [imageInput, setImageInput] = useState("");
   const [nameInput, setNameInput] = useState("");

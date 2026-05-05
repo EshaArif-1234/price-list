@@ -1,5 +1,4 @@
 import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
-import { CATEGORY_DEFAULT_SEED } from "@/lib/dashboard/category-catalog";
 import type { DashboardSpecificationRow } from "@/lib/dashboard/specification-catalog";
 import { SPECIFICATION_DEFAULT_SEED } from "@/lib/dashboard/specification-catalog";
 import { parseStoredProducts } from "@/lib/dashboard/product-catalog";
@@ -9,10 +8,10 @@ function normalizeCategoryName(name: string): string {
 }
 
 function readDashboardCategories(raw: string | null): DashboardCategoryRow[] {
-  if (raw === null) return CATEGORY_DEFAULT_SEED;
+  if (raw === null) return [];
   try {
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return CATEGORY_DEFAULT_SEED;
+    if (!Array.isArray(parsed)) return [];
     return parsed
       .filter(
         (row): row is DashboardCategoryRow =>
@@ -27,7 +26,7 @@ function readDashboardCategories(raw: string | null): DashboardCategoryRow[] {
       }))
       .filter((row) => row.name.length > 0);
   } catch {
-    return CATEGORY_DEFAULT_SEED;
+    return [];
   }
 }
 

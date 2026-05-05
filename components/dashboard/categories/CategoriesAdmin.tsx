@@ -12,7 +12,6 @@ import {
 
 import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
 import {
-  CATEGORY_DEFAULT_SEED,
   CATEGORY_LIST_PAGE_SIZE,
   CATEGORY_STORAGE_KEY,
 } from "@/lib/dashboard/category-catalog";
@@ -26,9 +25,9 @@ function loadRows(): DashboardCategoryRow[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(CATEGORY_STORAGE_KEY);
-    if (raw === null) return CATEGORY_DEFAULT_SEED;
+    if (raw === null) return [];
     const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return CATEGORY_DEFAULT_SEED;
+    if (!Array.isArray(parsed)) return [];
     return parsed
       .filter(
         (row): row is DashboardCategoryRow =>
@@ -43,7 +42,7 @@ function loadRows(): DashboardCategoryRow[] {
       }))
       .filter((row) => row.name.length > 0);
   } catch {
-    return CATEGORY_DEFAULT_SEED;
+    return [];
   }
 }
 
