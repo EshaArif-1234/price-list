@@ -937,7 +937,7 @@ export function ProductsAdmin() {
   const touchFullSmAuto = "w-full min-[480px]:w-auto";
 
   const ghostBtn =
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-secondary/15 bg-white px-3.5 py-2.5 text-sm font-medium text-secondary/85 shadow-[0_1px_2px_rgba(15,76,105,0.04)] transition-[background-color,border-color,box-shadow,color] hover:border-secondary/22 hover:bg-secondary/[0.04] hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 sm:min-h-10 sm:py-2";
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-secondary/15 bg-white px-3.5 py-2.5 text-sm font-medium text-secondary/85 shadow-[0_1px_2px_rgba(15,76,105,0.04)] transition-[background-color,border-color,box-shadow,color] hover:border-secondary/22 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 sm:min-h-10 sm:py-2";
 
   const primaryBtn =
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(227,102,48,0.25)] transition-[filter,transform] hover:brightness-[1.03] active:translate-y-[0.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
@@ -946,7 +946,7 @@ export function ProductsAdmin() {
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(220,38,38,0.28)] transition-[filter,transform] hover:bg-red-700 active:translate-y-[0.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2";
 
   const iconViewBtn =
-    "inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-secondary transition-[background-color,color] hover:bg-secondary/[0.08] hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 lg:size-10";
+    "inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-secondary transition-[background-color,color]  hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 lg:size-10";
 
   const iconEditBtn =
     "inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-yellow-600 transition-[background-color,color] hover:bg-yellow-400/18 hover:text-yellow-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-500 focus-visible:ring-offset-2 lg:size-10";
@@ -1016,7 +1016,7 @@ export function ProductsAdmin() {
 
       <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 max-w-2xl space-y-2">
-          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-secondary/10 bg-secondary/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary/55">
+          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-secondary/10  px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary/55">
             <IconPackage className="size-3.5 shrink-0 opacity-70" />
             <span className="truncate">Catalog inventory</span>
           </div>
@@ -1086,7 +1086,7 @@ export function ProductsAdmin() {
       ) : null}
 
       <section className="mt-8 overflow-hidden rounded-xl border border-secondary/[0.09] bg-white shadow-[0_1px_3px_rgba(15,76,105,0.06),0_8px_24px_-8px_rgba(15,76,105,0.08)] sm:mt-10 sm:rounded-2xl">
-        <div className="border-b border-secondary/[0.06] bg-secondary/[0.025] px-4 py-4 sm:px-6">
+        <div className="border-b border-secondary/[0.06]  px-4 py-4 sm:px-6">
           <h2 className="text-[15px] font-semibold text-secondary">
             Product list
           </h2>
@@ -1227,7 +1227,7 @@ export function ProductsAdmin() {
             <div className="hidden overflow-x-auto xl:block">
               <table className="w-full min-w-[54rem] table-fixed border-collapse text-left text-[14px]">
                 <thead>
-                  <tr className="border-b border-secondary/[0.06] bg-secondary/[0.03]">
+                  <tr className="border-b border-secondary/[0.06] ">
                     <th className="w-20 px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42">
                       Image
                     </th>
@@ -1258,7 +1258,7 @@ export function ProductsAdmin() {
                   {paginated.map((p) => (
                     <tr
                       key={p.id}
-                      className={`bg-white transition-colors hover:bg-secondary/[0.02] ${p.active === false ? "opacity-[0.88]" : ""}`}
+                      className={`bg-white transition-colors ${p.active === false ? "opacity-[0.88]" : ""}`}
                     >
                       <td className="px-4 py-3 align-middle">
                         <Thumb
@@ -1357,7 +1357,7 @@ export function ProductsAdmin() {
         )}
 
         {hydrated && filtered.length > pageSize ? (
-          <footer className="flex flex-col gap-4 border-t border-secondary/[0.06] bg-secondary/[0.02] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <footer className="flex flex-col gap-4 border-t border-secondary/[0.06]  px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-center text-[13px] text-secondary/48 sm:text-left">
               Showing{" "}
               <span className="font-semibold tabular-nums text-secondary">
@@ -1441,7 +1441,7 @@ export function ProductsAdmin() {
             <button
               type="button"
               onClick={closeModal}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 hover:bg-secondary/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:size-10"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:size-10"
               aria-label="Close"
             >
               <IconX className="size-[18px]" />
@@ -1562,7 +1562,7 @@ export function ProductsAdmin() {
                   <legend className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
                     Categories (multi-select)
                   </legend>
-                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-secondary/10 bg-secondary/[0.02] p-3">
+                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-secondary/10  p-3">
                     {categoryCheckboxOptions.map((c) => (
                       <label
                         key={c}
@@ -1628,7 +1628,7 @@ export function ProductsAdmin() {
                 />
               </div>
 
-              <div className="rounded-xl border border-secondary/10 bg-secondary/[0.02] px-3 py-3">
+              <div className="rounded-xl border border-secondary/10  px-3 py-3">
                 <label className="flex cursor-pointer items-start gap-3">
                   <input
                     type="checkbox"
@@ -1656,7 +1656,7 @@ export function ProductsAdmin() {
                   Choose labels from your library, then enter the value for this
                   product.
                 </p>
-                <div className="max-h-56 space-y-3 overflow-y-auto rounded-xl border border-secondary/10 bg-secondary/[0.02] p-3">
+                <div className="max-h-56 space-y-3 overflow-y-auto rounded-xl border border-secondary/10  p-3">
                   {specOptions.map((row) => (
                     <div key={row.id} className="rounded-lg px-2 py-1">
                       <label className="flex cursor-pointer items-start gap-2 text-[13px] hover:bg-white">
@@ -1700,7 +1700,7 @@ export function ProductsAdmin() {
               </fieldset>
             </div>
 
-            <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] bg-secondary/[0.02] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-2 sm:px-6 sm:pb-4">
+            <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-2 sm:px-6 sm:pb-4">
               <button
                 type="button"
                 onClick={closeModal}
@@ -1757,7 +1757,7 @@ export function ProductsAdmin() {
                 <button
                   type="button"
                   onClick={() => setViewing(null)}
-                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 hover:bg-secondary/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:size-10"
+                  className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:size-10"
                   aria-label="Close"
                 >
                   <IconX className="size-[18px]" />
@@ -1862,7 +1862,7 @@ export function ProductsAdmin() {
             <button
               type="button"
               onClick={closeDelete}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-secondary/45 hover:bg-secondary/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 sm:size-10"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl text-secondary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 sm:size-10"
               aria-label="Close"
             >
               <IconX className="size-[18px]" />
@@ -1870,12 +1870,12 @@ export function ProductsAdmin() {
           </div>
           <div className="px-4 pb-2 pt-4 sm:px-6">
             {pendingDelete ? (
-              <p className="rounded-xl border border-secondary/10 bg-secondary/[0.03] px-3 py-2 text-[14px] font-medium text-secondary">
+              <p className="rounded-xl border border-secondary/10  px-3 py-2 text-[14px] font-medium text-secondary">
                 {pendingDelete.name}
               </p>
             ) : null}
           </div>
-          <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] bg-secondary/[0.02] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
+          <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
             <button
               ref={deleteCancelRef}
               type="button"

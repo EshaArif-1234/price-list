@@ -209,10 +209,10 @@ function TableSkeleton() {
       {Array.from({ length: 6 }).map((_, i) => (
         <tr key={i} className="border-b border-secondary/[0.06]">
           <td className="px-4 py-4 lg:px-6">
-            <div className="h-6 w-36 animate-pulse rounded-md bg-secondary/[0.08]" />
+            <div className="h-6 w-36 animate-pulse rounded-md " />
           </td>
           <td className="px-4 py-4 text-right lg:px-6">
-            <div className="ml-auto h-10 w-24 animate-pulse rounded-lg bg-secondary/[0.06]" />
+            <div className="ml-auto h-10 w-24 animate-pulse rounded-lg" />
           </td>
         </tr>
       ))}
@@ -229,10 +229,10 @@ function MobileRowSkeleton() {
           className="border-b border-secondary/[0.06] px-4 py-4 sm:px-5"
         >
           <div className="flex items-start justify-between gap-3">
-            <div className="h-7 w-28 animate-pulse rounded-lg bg-secondary/[0.08]" />
+            <div className="h-7 w-28 animate-pulse rounded-lg" />
             <div className="flex gap-1">
-              <div className="size-11 animate-pulse rounded-lg bg-secondary/[0.06] sm:size-10" />
-              <div className="size-11 animate-pulse rounded-lg bg-secondary/[0.06] sm:size-10" />
+              <div className="size-11 animate-pulse rounded-lg sm:size-10" />
+              <div className="size-11 animate-pulse rounded-lg sm:size-10" />
             </div>
           </div>
         </li>
@@ -441,7 +441,7 @@ export function SpecificationsAdmin() {
     "min-h-11 w-full rounded-xl border border-secondary/12 bg-white px-3.5 py-2.5 text-[15px] text-secondary outline-none ring-primary transition-[box-shadow,border-color] placeholder:text-secondary/35 focus-visible:border-transparent focus-visible:ring-2";
 
   const ghostBtn =
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-secondary/15 bg-white px-3.5 py-2.5 text-sm font-medium text-secondary/85 shadow-[0_1px_2px_rgba(15,76,105,0.04)] transition-[background-color,border-color,box-shadow,color] hover:border-secondary/22 hover:bg-secondary/[0.04] hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 sm:min-h-10 sm:py-2";
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-secondary/15 bg-white px-3.5 py-2.5 text-sm font-medium text-secondary/85 shadow-[0_1px_2px_rgba(15,76,105,0.04)] transition-[background-color,border-color,box-shadow,color] hover:border-secondary/22 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40 sm:min-h-10 sm:py-2";
 
   const primaryBtn =
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(227,102,48,0.25)] transition-[filter,transform] hover:brightness-[1.03] active:translate-y-[0.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
@@ -464,7 +464,7 @@ export function SpecificationsAdmin() {
           <col className="w-[8.5rem]" />
         </colgroup>
         <thead>
-          <tr className="border-b border-secondary/[0.06] bg-secondary/[0.03]">
+          <tr className="border-b border-secondary/[0.06] ">
             <th
               scope="col"
               className="px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42 lg:px-6"
@@ -483,10 +483,10 @@ export function SpecificationsAdmin() {
           {paginatedRows.map((row) => (
             <tr
               key={row.id}
-              className="group bg-white transition-colors hover:bg-secondary/[0.02]"
+              className="group bg-white transition-colors"
             >
               <td className="px-4 py-4 align-middle lg:px-6">
-                <span className="inline-flex max-w-full rounded-lg bg-secondary/[0.06] px-2.5 py-1 text-[13px] font-medium tracking-tight text-secondary">
+                <span className="inline-flex max-w-full rounded-lg px-2.5 py-1 text-[13px] font-medium tracking-tight text-secondary">
                   <span className="truncate">{row.key}</span>
                 </span>
               </td>
@@ -537,7 +537,7 @@ export function SpecificationsAdmin() {
 
       <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 max-w-2xl space-y-2">
-          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-secondary/10 bg-secondary/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary/55">
+          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-secondary/10  px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary/55">
             <IconLayers className="size-3.5 shrink-0 opacity-70" />
             <span className="truncate">Catalog attributes</span>
           </div>
@@ -569,7 +569,7 @@ export function SpecificationsAdmin() {
       </header>
 
       <section className="mt-8 overflow-hidden rounded-xl border border-secondary/[0.09] bg-white shadow-[0_1px_3px_rgba(15,76,105,0.06),0_8px_24px_-8px_rgba(15,76,105,0.08)] sm:mt-10 sm:rounded-2xl">
-        <div className="border-b border-secondary/[0.06] bg-secondary/[0.025] px-4 py-4 sm:px-6">
+        <div className="border-b border-secondary/[0.06] px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2 className="text-[15px] font-semibold text-secondary">
               Attribute library
@@ -592,7 +592,7 @@ export function SpecificationsAdmin() {
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full min-w-[20rem] table-fixed border-collapse text-left text-[14px]">
                 <thead>
-                  <tr className="border-b border-secondary/[0.06] bg-secondary/[0.03]">
+                  <tr className="border-b border-secondary/[0.06] ">
                     <th
                       scope="col"
                       className="px-4 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42 lg:px-6"
@@ -616,7 +616,7 @@ export function SpecificationsAdmin() {
         ) : paginatedRows.length === 0 ? (
           <div className="px-4 py-14 sm:px-6 sm:py-[4.5rem]">
             <div className="mx-auto flex max-w-sm flex-col items-center text-center">
-              <div className="flex size-14 items-center justify-center rounded-2xl border border-secondary/10 bg-secondary/[0.04] text-secondary/35">
+              <div className="flex size-14 items-center justify-center rounded-2xl border border-secondary/10  text-secondary/35">
                 <IconLayers className="size-7" />
               </div>
               <p className="mt-5 text-[15px] font-semibold text-secondary">
@@ -641,7 +641,7 @@ export function SpecificationsAdmin() {
               {paginatedRows.map((row) => (
                 <li key={row.id} className="px-4 py-4 sm:px-5">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="inline-flex min-w-0 max-w-[min(100%,14rem)] rounded-lg bg-secondary/[0.06] px-2.5 py-1 text-[13px] font-medium tracking-tight text-secondary sm:max-w-[70%]">
+                    <span className="inline-flex min-w-0 max-w-[min(100%,14rem)] rounded-lg px-2.5 py-1 text-[13px] font-medium tracking-tight text-secondary sm:max-w-[70%]">
                       <span className="truncate">{row.key}</span>
                     </span>
                     <div className="flex shrink-0 gap-1">
@@ -676,7 +676,7 @@ export function SpecificationsAdmin() {
         )}
 
         {hydrated && rows.length > pageSize ? (
-          <footer className="flex flex-col gap-4 border-t border-secondary/[0.06] bg-secondary/[0.02] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <footer className="flex flex-col gap-4 border-t border-secondary/[0.06] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-center text-[13px] text-secondary/48 sm:text-left">
               Showing{" "}
               <span className="font-semibold tabular-nums text-secondary">
@@ -756,7 +756,7 @@ export function SpecificationsAdmin() {
           <button
             type="button"
             onClick={closeModal}
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 transition-[background-color,color,border-color] hover:border-secondary/12 hover:bg-secondary/[0.05] hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:size-10"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 transition-[background-color,color,border-color] hover:border-secondary/12 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:size-10"
             aria-label="Close dialog"
           >
             <IconX className="size-[18px]" />
@@ -790,7 +790,7 @@ export function SpecificationsAdmin() {
             </div>
           </div>
 
-          <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] bg-secondary/[0.02] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-2 sm:px-6 sm:pb-4">
+          <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06]  px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-2 sm:px-6 sm:pb-4">
             <button
               type="button"
               onClick={closeModal}
@@ -849,7 +849,7 @@ export function SpecificationsAdmin() {
           <button
             type="button"
             onClick={closeDeleteDialog}
-            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 transition-[background-color,color,border-color] hover:border-secondary/12 hover:bg-secondary/[0.05] hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 sm:size-10"
+            className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 transition-[background-color,color,border-color] hover:border-secondary/12 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 sm:size-10"
             aria-label="Close dialog"
           >
             <IconX className="size-[18px]" />
@@ -858,7 +858,7 @@ export function SpecificationsAdmin() {
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-2 sm:px-6">
           {pendingDelete ? (
-            <div className="mt-2 rounded-xl border border-secondary/[0.08] bg-secondary/[0.035] px-4 py-3 sm:mt-4">
+            <div className="mt-2 rounded-xl border border-secondary/[0.08] px-4 py-3 sm:mt-4">
               <dl className="grid gap-2 text-[13px]">
                 <div>
                   <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
@@ -881,7 +881,7 @@ export function SpecificationsAdmin() {
           ) : null}
         </div>
 
-        <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] bg-secondary/[0.02] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-2 sm:px-6 sm:pb-4">
+        <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-2 sm:px-6 sm:pb-4">
           <button
             ref={deleteCancelRef}
             type="button"

@@ -268,7 +268,7 @@ export function AdminUsersAdmin() {
   const touchFullSmAuto = "w-full min-[480px]:w-auto";
 
   const ghostBtn =
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-secondary/15 bg-white px-3.5 py-2.5 text-sm font-medium text-secondary/85 shadow-[0_1px_2px_rgba(15,76,105,0.04)] transition-[background-color,border-color,box-shadow,color] hover:border-secondary/22 hover:bg-secondary/[0.04] hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:min-h-10 sm:py-2";
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-secondary/15 bg-white px-3.5 py-2.5 text-sm font-medium text-secondary/85 shadow-[0_1px_2px_rgba(15,76,105,0.04)] transition-[background-color,border-color,box-shadow,color] hover:border-secondary/22  hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:min-h-10 sm:py-2";
 
   const primaryBtn =
     "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(227,102,48,0.25)] transition-[filter,transform] hover:brightness-[1.03] active:translate-y-[0.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
@@ -305,7 +305,7 @@ export function AdminUsersAdmin() {
 
       <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 max-w-2xl space-y-2">
-          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-secondary/10 bg-secondary/[0.04] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary/55">
+          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-secondary/10  px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-secondary/55">
             <IconShield className="size-3.5 shrink-0 opacity-70" />
             <span className="truncate">Dashboard sign-in</span>
           </div>
@@ -340,7 +340,7 @@ export function AdminUsersAdmin() {
       ) : null}
 
       <section className="mt-8 overflow-hidden rounded-xl border border-secondary/[0.09] bg-white shadow-[0_1px_3px_rgba(15,76,105,0.06)] sm:mt-10 sm:rounded-2xl">
-        <div className="border-b border-secondary/[0.06] bg-secondary/[0.025] px-4 py-4 sm:px-6">
+        <div className="border-b border-secondary/[0.06] px-4 py-4 sm:px-6">
           <h2 className="text-[15px] font-semibold text-secondary">Accounts</h2>
           <p className="mt-0.5 text-[13px] text-secondary/48">
             {hydrated ? `${rows.length} administrator(s)` : "Loading…"}
@@ -389,7 +389,7 @@ export function AdminUsersAdmin() {
             <div className="hidden overflow-x-auto lg:block">
               <table className="w-full min-w-[28rem] table-fixed border-collapse text-left text-[14px]">
                 <thead>
-                  <tr className="border-b border-secondary/[0.06] bg-secondary/[0.03]">
+                  <tr className="border-b border-secondary/[0.06] ">
                     <th
                       scope="col"
                       className="px-6 py-3.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-secondary/42"
@@ -408,7 +408,7 @@ export function AdminUsersAdmin() {
                   {rows.map((row) => (
                     <tr
                       key={row.id}
-                      className="bg-white transition-colors hover:bg-secondary/[0.02]"
+                      className="bg-white transition-colors"
                     >
                       <td className="px-6 py-4 align-middle">
                         <span className="font-medium text-secondary">
@@ -465,7 +465,7 @@ export function AdminUsersAdmin() {
             <button
               type="button"
               onClick={closeModal}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 hover:bg-secondary/[0.05] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:size-10"
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:size-10"
               aria-label="Close"
             >
               <IconX className="size-[18px]" />
@@ -528,7 +528,7 @@ export function AdminUsersAdmin() {
                 </p>
               ) : null}
             </div>
-            <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] bg-secondary/[0.02] px-4 py-4 sm:flex-row sm:justify-end sm:gap-2 sm:px-6">
+            <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] px-4 py-4 sm:flex-row sm:justify-end sm:gap-2 sm:px-6">
               <button
                 type="button"
                 onClick={closeModal}

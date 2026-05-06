@@ -31,7 +31,7 @@ export function CatalogStockTabs({ active }: CatalogStockTabsProps) {
 
   return (
     <div
-      className="mb-6 flex w-full gap-2 rounded-xl border border-secondary/15 bg-secondary/[0.03] p-1 sm:inline-flex sm:w-auto"
+      className="mb-6 flex w-full gap-2 rounded-xl border border-secondary/15  p-1 sm:inline-flex sm:w-auto"
       role="tablist"
       aria-label="Filter by stock"
     >
