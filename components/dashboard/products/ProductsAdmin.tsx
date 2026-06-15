@@ -15,6 +15,7 @@ import {
 import type { DashboardSpecificationRow } from "@/lib/dashboard/specification-catalog";
 import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
 import { CATEGORY_STORAGE_KEY } from "@/lib/dashboard/category-catalog";
+import { compressImageFile } from "@/lib/dashboard/compress-image";
 import { dashboardGet, dashboardRequest, dashboardUploadImage } from "@/lib/dashboard/dashboard-fetch";
 import {
   parseStoredProducts,
@@ -25,9 +26,21 @@ import { SPECIFICATION_STORAGE_KEY } from "@/lib/dashboard/specification-catalog
 import { formatProductPrice } from "@/lib/format-product-price";
 import type { Product, ProductBrand } from "@/lib/types/product";
 
-/** Browser-only catalog: keep data URLs small. */
-const LOCAL_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
-const CLOUDINARY_IMAGE_MAX_BYTES = 8 * 1024 * 1024;
+/** Product images are capped at 5 MB for both upload modes. */
+const LOCAL_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+const CLOUDINARY_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+
+function readFileAsDataURL(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("Could not read that file."));
+    };
+    reader.onerror = () => reject(new Error("Could not read that file."));
+    reader.readAsDataURL(file);
+  });
+}
 
 function normalizeStoredImage(raw: string): string {
   const image = raw.trim();
@@ -254,6 +267,61 @@ function IconAlertTriangle({ className }: { className?: string }) {
   );
 }
 
+function IconFolder({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z" />
+    </svg>
+  );
+}
+
+function IconChevronDown({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
+function IconCheckCircle({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <path d="m9 11 3 3L22 4" />
+    </svg>
+  );
+}
+
 function IconPackage({ className }: { className?: string }) {
   return (
     <svg
@@ -336,12 +404,17 @@ export function ProductsAdmin() {
   const [hydrated, setHydrated] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<Product | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const [specOptions, setSpecOptions] =
     useState<DashboardSpecificationRow[]>([]);
@@ -371,6 +444,16 @@ export function ProductsAdmin() {
   const deleteCancelRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const imageFileInputRef = useRef<HTMLInputElement>(null);
+  /** Bumped whenever the modal opens/closes or a new file is chosen, so a
+   * slow in-flight upload from a previous interaction can't apply late or
+   * leave the "Uploading…" state stuck. */
+  const imageUploadSeqRef = useRef(0);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [toast]);
 
   const retryFetchFromServer = useCallback(async () => {
     setHydrated(false);
@@ -456,13 +539,20 @@ export function ProductsAdmin() {
 
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return products;
+    const cat = categoryFilter.trim().toLowerCase();
     return products.filter((p) => {
+      if (cat !== "all") {
+        const inCategory = p.categories.some(
+          (c) => c.trim().toLowerCase() === cat,
+        );
+        if (!inCategory) return false;
+      }
+      if (!q) return true;
       const hay =
         `${p.name} ${p.categories.join(" ")} ${p.description} ${p.brand}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [products, searchQuery]);
+  }, [products, searchQuery, categoryFilter]);
 
   const editingProduct =
     editingId === null
@@ -490,7 +580,7 @@ export function ProductsAdmin() {
 
   useEffect(() => {
     queueMicrotask(() => setPage(1));
-  }, [searchQuery]);
+  }, [searchQuery, categoryFilter]);
 
   useEffect(() => {
     const lockScroll = modalOpen || viewing !== null || pendingDelete !== null;
@@ -537,6 +627,8 @@ export function ProductsAdmin() {
   }, [filtered, page, pageSize]);
 
   function resetForm(categoryNames?: string[]) {
+    imageUploadSeqRef.current += 1;
+    setUploadingImage(false);
     if (imageFileInputRef.current) imageFileInputRef.current.value = "";
     setImageInput("");
     setNameInput("");
@@ -583,6 +675,8 @@ export function ProductsAdmin() {
   async function openEdit(p: Product) {
     setPendingDelete(null);
     setViewing(null);
+    imageUploadSeqRef.current += 1;
+    setUploadingImage(false);
 
     let specs: DashboardSpecificationRow[];
     if (persistBackend === "api") {
@@ -665,36 +759,36 @@ export function ProductsAdmin() {
       return;
     }
 
-    if (persistBackend === "api") {
-      setUploadingImage(true);
-      setFormError(null);
-      try {
-        const { url } = await dashboardUploadImage(file);
-        setImageInput(url);
-      } catch (err) {
+    const seq = (imageUploadSeqRef.current += 1);
+    const isCurrent = () => seq === imageUploadSeqRef.current;
+
+    setUploadingImage(true);
+    setFormError(null);
+    try {
+      // Downscale/re-encode in the browser so uploads are fast and storage small.
+      const prepared = await compressImageFile(file, {
+        maxDimension: 1600,
+        quality: 0.82,
+      });
+
+      if (persistBackend === "api") {
+        const { url } = await dashboardUploadImage(prepared);
+        if (isCurrent()) setImageInput(url);
+        return;
+      }
+
+      const dataUrl = await readFileAsDataURL(prepared);
+      if (isCurrent()) setImageInput(dataUrl);
+    } catch (err) {
+      if (isCurrent()) {
         setFormError(
           err instanceof Error ? err.message : "Could not upload image.",
         );
-      } finally {
-        setUploadingImage(false);
-        input.value = "";
       }
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      if (typeof result === "string") {
-        setImageInput(result);
-        setFormError(null);
-      }
-    };
-    reader.onerror = () => {
-      setFormError("Could not read that file.");
+    } finally {
+      if (isCurrent()) setUploadingImage(false);
       input.value = "";
-    };
-    reader.readAsDataURL(file);
+    }
   }
 
   async function handleSave(e: FormEvent<HTMLFormElement>) {
@@ -789,26 +883,16 @@ export function ProductsAdmin() {
         const list = await dashboardGet<Product[]>("/api/dashboard/products");
         setProducts(list);
 
-        const q = searchQuery.trim().toLowerCase();
-        if (!editingId) {
-          const matches =
-            !q ||
-            `${fullProduct.name} ${fullProduct.categories.join(" ")} ${fullProduct.description} ${fullProduct.brand}`
-              .toLowerCase()
-              .includes(q);
-          if (matches) {
-            const f = !q
-              ? list
-              : list.filter((p) => {
-                  const hay =
-                    `${p.name} ${p.categories.join(" ")} ${p.description} ${p.brand}`.toLowerCase();
-                  return hay.includes(q);
-                });
-            setPage(Math.max(1, Math.ceil(f.length / pageSize)));
-          }
-        }
+        // New products sort to the top (newest first), so show page 1.
+        if (!editingId) setPage(1);
 
         closeModal();
+        setToast({
+          kind: "success",
+          message: editingId
+            ? "Product updated successfully."
+            : "Product created successfully.",
+        });
       } catch (err) {
         setFormError(
           err instanceof Error ? err.message : "Could not save product.",
@@ -851,28 +935,18 @@ export function ProductsAdmin() {
         specifications,
         active: activeInput,
       };
-      const q = searchQuery.trim().toLowerCase();
-      setProducts((prev) => {
-        const next = [...prev, newProduct];
-        const matches =
-          !q ||
-          `${newProduct.name} ${newProduct.categories.join(" ")} ${newProduct.description} ${newProduct.brand}`
-            .toLowerCase()
-            .includes(q);
-        if (matches) {
-          const f = !q
-            ? next
-            : next.filter((p) => {
-                const hay =
-                  `${p.name} ${p.categories.join(" ")} ${p.description} ${p.brand}`.toLowerCase();
-                return hay.includes(q);
-              });
-          setPage(Math.max(1, Math.ceil(f.length / pageSize)));
-        }
-        return next;
-      });
+      // Newest first: prepend and show page 1.
+      setProducts((prev) => [newProduct, ...prev]);
+      setPage(1);
     }
+    const wasEditing = editingId !== null;
     closeModal();
+    setToast({
+      kind: "success",
+      message: wasEditing
+        ? "Product updated successfully."
+        : "Product created successfully.",
+    });
   }
 
   const requestDelete = useCallback((p: Product) => {
@@ -897,13 +971,19 @@ export function ProductsAdmin() {
         });
         const list = await dashboardGet<Product[]>("/api/dashboard/products");
         setProducts(list);
-      } catch {
-        setProducts((prev) => prev.filter((p) => p.id !== id));
+        setToast({ kind: "success", message: "Product deleted successfully." });
+      } catch (err) {
+        setToast({
+          kind: "error",
+          message:
+            err instanceof Error ? err.message : "Could not delete product.",
+        });
       }
       return;
     }
 
     setProducts((prev) => prev.filter((p) => p.id !== id));
+    setToast({ kind: "success", message: "Product deleted successfully." });
   }
 
   async function persistProductActive(p: Product, nextActive: boolean) {
@@ -916,6 +996,20 @@ export function ProductsAdmin() {
         });
         const list = await dashboardGet<Product[]>("/api/dashboard/products");
         setProducts(list);
+        setToast({
+          kind: "success",
+          message: nextActive
+            ? "Product is now visible on the storefront."
+            : "Product hidden from the storefront.",
+        });
+      } catch (err) {
+        setToast({
+          kind: "error",
+          message:
+            err instanceof Error
+              ? err.message
+              : "Could not update visibility.",
+        });
       } finally {
         setActiveSavingId(null);
       }
@@ -1037,19 +1131,41 @@ export function ProductsAdmin() {
         </div>
 
         <div className="flex w-full flex-col gap-3 lg:w-auto lg:max-w-md">
-          <label className="relative block">
-            <span className="sr-only">Search products</span>
-            <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-secondary/40" />
-            <input
-              ref={searchRef}
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search name, categories, description…"
-              className={`${inputClass} min-h-12 pl-10`}
-              autoComplete="off"
-            />
-          </label>
+          <div className="flex flex-col gap-3 min-[480px]:flex-row">
+            <label className="relative block min-[480px]:flex-1">
+              <span className="sr-only">Search products</span>
+              <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-secondary/40" />
+              <input
+                ref={searchRef}
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search name, categories, description…"
+                className={`${inputClass} min-h-12 pl-10`}
+                autoComplete="off"
+              />
+            </label>
+            <div className="relative min-[480px]:w-52">
+              <label className="sr-only" htmlFor="dashboard-category-filter">
+                Filter by category
+              </label>
+              <IconFolder className="pointer-events-none absolute left-3 top-1/2 size-[16px] -translate-y-1/2 text-secondary/40" />
+              <select
+                id="dashboard-category-filter"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className={`${inputClass} min-h-12 cursor-pointer appearance-none pl-9 pr-9`}
+              >
+                <option value="all">All categories</option>
+                {categoryOptions.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <IconChevronDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-secondary/45" />
+            </div>
+          </div>
           <div className="flex flex-wrap items-center gap-3 min-[480px]:justify-end">
             <div className="flex flex-1 items-center justify-between gap-2 rounded-xl border border-secondary/10 bg-white px-4 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,1)] min-[480px]:max-w-[12rem] min-[480px]:flex-none">
               <span className="text-[13px] text-secondary/45">Showing</span>
@@ -1490,7 +1606,9 @@ export function ProductsAdmin() {
                 </p>
                 {uploadingImage ? (
                   <p className="mt-2 text-[12px] font-medium text-secondary/55">
-                    Uploading to Cloudinary…
+                    {persistBackend === "api"
+                      ? "Optimizing and uploading…"
+                      : "Optimizing image…"}
                   </p>
                 ) : imageInput.startsWith("data:image/") ? (
                   <p className="mt-2 text-[12px] font-medium text-secondary/55">
@@ -1895,6 +2013,41 @@ export function ProductsAdmin() {
           </div>
         </div>
       </dialog>
+
+      {toast ? (
+        <div
+          className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[120] flex justify-center px-4"
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border px-4 py-3 shadow-[0_12px_32px_-12px_rgba(15,76,105,0.45)] ${
+              toast.kind === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-red-200 bg-red-50 text-red-900"
+            }`}
+          >
+            <span className="mt-0.5 shrink-0">
+              {toast.kind === "success" ? (
+                <IconCheckCircle className="size-5 text-emerald-600" />
+              ) : (
+                <IconAlertTriangle className="size-5 text-red-600" />
+              )}
+            </span>
+            <p className="min-w-0 flex-1 text-[13px] font-medium leading-relaxed">
+              {toast.message}
+            </p>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="-mr-1 -mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-lg opacity-60 transition-opacity hover:opacity-100"
+              aria-label="Dismiss notification"
+            >
+              <IconX className="size-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

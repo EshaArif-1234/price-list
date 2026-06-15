@@ -12,6 +12,8 @@ export const metadata: Metadata = {
 const LOGIN_ERRORS: Record<string, string> = {
   invalid: "Invalid email or password.",
   db: "Could not reach the database. In MongoDB Atlas → Network Access, allow connections from your host (for Vercel, add 0.0.0.0/0 while testing). Confirm MONGODB_URI on Vercel is correct—URL-encode special characters in the password—then redeploy.",
+  config:
+    "Server is not configured for sign-in. Set MONGODB_URI and SESSION_SECRET in the deployment environment, then redeploy.",
 };
 
 export default async function LoginRoutePage({

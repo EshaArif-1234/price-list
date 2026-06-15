@@ -12,7 +12,7 @@ export const COLLECTIONS = {
 } as const;
 
 /** Stored without duplicate `id` field — `_id` matches `Product.id`. */
-type ProductDoc = Omit<Product, "id"> & { _id: string };
+type ProductDoc = Omit<Product, "id"> & { _id: string; createdAt?: Date };
 
 type CategoryDoc = { _id: string; name: string };
 
@@ -24,7 +24,8 @@ export async function listProducts(): Promise<Product[]> {
   if ((await col.countDocuments()) === 0) {
     return [];
   }
-  const docs = await col.find({}).toArray();
+  // Newest first; products created before `createdAt` existed sort to the bottom.
+  const docs = await col.find({}).sort({ createdAt: -1, _id: -1 }).toArray();
   const out: Product[] = [];
   for (const doc of docs) {
     const { _id, ...rest } = doc;
@@ -41,6 +42,7 @@ export async function insertProduct(product: Product): Promise<void> {
   await db.collection<ProductDoc>(COLLECTIONS.products).insertOne({
     _id: id,
     ...fields,
+    createdAt: new Date(),
   });
 }
 

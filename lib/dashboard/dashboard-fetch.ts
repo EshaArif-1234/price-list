@@ -32,18 +32,66 @@ export async function dashboardGet<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-/** Upload an image file to Cloudinary via the dashboard API; returns HTTPS URL. */
+type UploadSignature = {
+  cloudName: string;
+  apiKey: string;
+  folder: string;
+  timestamp: number;
+  signature: string;
+};
+
+/**
+ * Uploads an image straight from the browser to Cloudinary using a server-signed
+ * request. The file bytes never pass through our serverless function, so this is
+ * not subject to Vercel's request-body limit or function timeout.
+ */
 export async function dashboardUploadImage(file: File): Promise<{ url: string }> {
+  const sigRes = await fetch("/api/dashboard/upload-signature", {
+    method: "POST",
+  });
+  if (!sigRes.ok) throw new Error(await readErrorMessage(sigRes));
+  const sig = (await sigRes.json()) as Partial<UploadSignature>;
+  if (
+    !sig.cloudName ||
+    !sig.apiKey ||
+    !sig.folder ||
+    typeof sig.timestamp !== "number" ||
+    !sig.signature
+  ) {
+    throw new Error("Invalid upload signature response.");
+  }
+
   const body = new FormData();
   body.append("file", file);
-  const res = await fetch("/api/dashboard/upload-image", {
-    method: "POST",
-    body,
-  });
-  if (!res.ok) throw new Error(await readErrorMessage(res));
-  const j = (await res.json()) as { url?: string };
-  if (!j.url || typeof j.url !== "string") {
-    throw new Error("Invalid upload response.");
+  body.append("api_key", sig.apiKey);
+  body.append("timestamp", String(sig.timestamp));
+  body.append("folder", sig.folder);
+  body.append("signature", sig.signature);
+
+  let res: Response;
+  try {
+    res = await fetch(
+      `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
+      { method: "POST", body },
+    );
+  } catch {
+    throw new Error("Could not reach the image host. Check your connection.");
   }
-  return { url: j.url };
+
+  if (!res.ok) {
+    let message = "Image upload failed.";
+    try {
+      const j = (await res.json()) as { error?: { message?: string } };
+      if (j.error?.message) message = j.error.message;
+    } catch {
+      /* keep generic message */
+    }
+    throw new Error(message);
+  }
+
+  const j = (await res.json()) as { secure_url?: string };
+  if (!j.secure_url || typeof j.secure_url !== "string") {
+    throw new Error("Upload returned no URL.");
+  }
+  return { url: j.secure_url };
 }

@@ -11,9 +11,11 @@ import { HeaderSkeleton } from "@/components/layout/HeaderSkeleton";
 
 export function CatalogChrome({
   categories,
+  sessionEmail,
   children,
 }: {
   categories: string[];
+  sessionEmail: string | null;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -26,7 +28,7 @@ export function CatalogChrome({
   return (
     <>
       <Suspense fallback={<HeaderSkeleton />}>
-        <Header categories={categories} />
+        <Header categories={categories} sessionEmail={sessionEmail} />
       </Suspense>
       <main className="flex flex-1 flex-col">{children}</main>
       <Footer />

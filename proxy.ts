@@ -1,9 +1,12 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-export function proxy(request: NextRequest) {
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
+
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const session = request.cookies.get("dashboard_session")?.value === "1";
+  const token = request.cookies.get(SESSION_COOKIE)?.value;
+  const session = (await verifySessionToken(token)) !== null;
 
   if (pathname.startsWith("/api/dashboard")) {
     if (!session) {

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
+import { SESSION_COOKIE, verifySessionToken } from "@/lib/auth/session";
 
 export const metadata: Metadata = {
   title: "Dashboard — Price List",
@@ -16,12 +17,14 @@ export default async function DashboardLayout({
   children: ReactNode;
 }>) {
   const cookieStore = await cookies();
-  if (cookieStore.get("dashboard_session")?.value !== "1") {
+  const session = await verifySessionToken(
+    cookieStore.get(SESSION_COOKIE)?.value,
+  );
+  if (!session) {
     redirect("/login");
   }
 
-  const email =
-    cookieStore.get("dashboard_email")?.value ?? "admin@company.local";
-
-  return <DashboardShell userEmail={email}>{children}</DashboardShell>;
+  return (
+    <DashboardShell userEmail={session.email}>{children}</DashboardShell>
+  );
 }
