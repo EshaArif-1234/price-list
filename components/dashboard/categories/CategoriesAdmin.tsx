@@ -192,6 +192,25 @@ function IconAlertTriangle({ className }: { className?: string }) {
   );
 }
 
+function IconCheckCircle({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <path d="m9 11 3 3L22 4" />
+    </svg>
+  );
+}
+
 function IconFolder({ className }: { className?: string }) {
   return (
     <svg
@@ -254,6 +273,10 @@ export function CategoriesAdmin() {
   );
   const [loadWarning, setLoadWarning] = useState<string | null>(null);
   const [categoryNotice, setCategoryNotice] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -291,6 +314,12 @@ export function CategoriesAdmin() {
     const t = window.setTimeout(() => setCategoryNotice(null), 10000);
     return () => window.clearTimeout(t);
   }, [categoryNotice]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [toast]);
 
   useEffect(() => {
     let cancelled = false;
@@ -422,6 +451,8 @@ export function CategoriesAdmin() {
     }
     setNameError(null);
 
+    const isEditing = editingId !== null;
+
     if (persistBackend === "api") {
       try {
         if (editingId) {
@@ -439,10 +470,16 @@ export function CategoriesAdmin() {
             },
           );
           setRows(next);
-          const lastPage = Math.max(1, Math.ceil(next.length / pageSize));
-          setPage(lastPage);
+          // Newest categories sort to the top, so jump to the first page.
+          setPage(1);
         }
         closeModal();
+        setToast({
+          kind: "success",
+          message: isEditing
+            ? "Category edited successfully."
+            : "Category created successfully.",
+        });
       } catch (err) {
         setNameError(
           err instanceof Error ? err.message : "Could not save category.",
@@ -456,14 +493,16 @@ export function CategoriesAdmin() {
         prev.map((r) => (r.id === editingId ? { ...r, name } : r)),
       );
     } else {
-      setRows((prev) => {
-        const next = [...prev, { id: crypto.randomUUID(), name }];
-        const lastPage = Math.max(1, Math.ceil(next.length / pageSize));
-        setPage(lastPage);
-        return next;
-      });
+      setRows((prev) => [{ id: crypto.randomUUID(), name }, ...prev]);
+      setPage(1);
     }
     closeModal();
+    setToast({
+      kind: "success",
+      message: isEditing
+        ? "Category edited successfully."
+        : "Category created successfully.",
+    });
   }
 
   const closeDeleteDialog = useCallback(() => {
@@ -489,13 +528,19 @@ export function CategoriesAdmin() {
             `Removed ${res.deletedProductCount} product${res.deletedProductCount === 1 ? "" : "s"} that used "${categoryLabel.trim()}".`,
           );
         }
-      } catch {
-        setRows((prev) => prev.filter((r) => r.id !== id));
+        setToast({ kind: "success", message: "Category deleted successfully." });
+      } catch (err) {
+        setToast({
+          kind: "error",
+          message:
+            err instanceof Error ? err.message : "Could not delete category.",
+        });
       }
       return;
     }
 
     setRows((prev) => prev.filter((r) => r.id !== id));
+    setToast({ kind: "success", message: "Category deleted successfully." });
     if (typeof window === "undefined") return;
     try {
       const raw = window.localStorage.getItem(PRODUCT_STORAGE_KEY);
@@ -1007,6 +1052,41 @@ export function CategoriesAdmin() {
           </div>
         </div>
       </dialog>
+
+      {toast ? (
+        <div
+          className="pointer-events-none fixed inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-[120] flex justify-center px-4"
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border px-4 py-3 shadow-[0_12px_32px_-12px_rgba(15,76,105,0.45)] ${
+              toast.kind === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-red-200 bg-red-50 text-red-900"
+            }`}
+          >
+            <span className="mt-0.5 shrink-0">
+              {toast.kind === "success" ? (
+                <IconCheckCircle className="size-5 text-emerald-600" />
+              ) : (
+                <IconAlertTriangle className="size-5 text-red-600" />
+              )}
+            </span>
+            <p className="min-w-0 flex-1 text-[13px] font-medium leading-relaxed">
+              {toast.message}
+            </p>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="-mr-1 -mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-lg opacity-60 transition-opacity hover:opacity-100"
+              aria-label="Dismiss notification"
+            >
+              <IconX className="size-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

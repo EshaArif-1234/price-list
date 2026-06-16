@@ -14,7 +14,7 @@ export const COLLECTIONS = {
 /** Stored without duplicate `id` field — `_id` matches `Product.id`. */
 type ProductDoc = Omit<Product, "id"> & { _id: string; createdAt?: Date };
 
-type CategoryDoc = { _id: string; name: string };
+type CategoryDoc = { _id: string; name: string; createdAt?: Date };
 
 type SpecificationDoc = { _id: string; key: string; value: string };
 
@@ -67,7 +67,8 @@ export async function deleteProduct(id: string): Promise<void> {
 export async function listCategories(): Promise<DashboardCategoryRow[]> {
   const db = await getMongoDb();
   const col = db.collection<CategoryDoc>(COLLECTIONS.categories);
-  const docs = await col.find({}).sort({ name: 1 }).toArray();
+  // Newest first; categories created before `createdAt` existed sort to the bottom.
+  const docs = await col.find({}).sort({ createdAt: -1, _id: -1 }).toArray();
   return docs.map((d) => ({
     id: String(d._id),
     name: String(d.name),
@@ -79,6 +80,7 @@ export async function insertCategory(row: DashboardCategoryRow): Promise<void> {
   await db.collection<CategoryDoc>(COLLECTIONS.categories).insertOne({
     _id: row.id,
     name: row.name,
+    createdAt: new Date(),
   });
 }
 
