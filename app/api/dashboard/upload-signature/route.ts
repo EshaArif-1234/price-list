@@ -1,14 +1,35 @@
 import { createHash } from "node:crypto";
 
 import { NextResponse } from "next/server";
-import { v2 as cloudinary } from "cloudinary";
 
 /**
  * Returns a short-lived signature so the browser can upload an image straight to
  * Cloudinary. Keeping the file off the serverless function avoids Vercel's
  * ~4.5 MB request-body limit and function timeouts (the old proxy-through-the-API
  * approach failed with 502 on larger images). The API secret never leaves the server.
+ *
+ * The signature is computed directly with `node:crypto` instead of importing the
+ * Cloudinary SDK, so this endpoint stays tiny and fast (no multi-hundred-KB SDK to
+ * load on every cold start, which was making the first upload of a session slow).
  */
+
+/**
+ * Cloudinary signed-upload signature: SHA-1 hex of the signable params sorted by
+ * key and joined as `k=v&k=v`, with the API secret appended (no separator).
+ * This matches `cloudinary.utils.api_sign_request` with the default algorithm.
+ */
+function signParams(
+  params: Record<string, string | number>,
+  apiSecret: string,
+): string {
+  const toSign = Object.keys(params)
+    .sort()
+    .map((key) => `${key}=${params[key]}`)
+    .join("&");
+  return createHash("sha1")
+    .update(toSign + apiSecret)
+    .digest("hex");
+}
 
 /**
  * Reads an env var, trimming whitespace and stripping a single pair of wrapping
@@ -48,10 +69,7 @@ export async function POST() {
 
   try {
     // Only signable params are signed; api_key/file/signature are excluded by Cloudinary.
-    const signature = cloudinary.utils.api_sign_request(
-      { folder, timestamp },
-      apiSecret,
-    );
+    const signature = signParams({ folder, timestamp }, apiSecret);
 
     return NextResponse.json({
       cloudName,

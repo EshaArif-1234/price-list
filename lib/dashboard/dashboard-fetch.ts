@@ -44,8 +44,15 @@ type UploadSignature = {
  * Uploads an image straight from the browser to Cloudinary using a server-signed
  * request. The file bytes never pass through our serverless function, so this is
  * not subject to Vercel's request-body limit or function timeout.
+ *
+ * Uses `XMLHttpRequest` (not `fetch`) for the Cloudinary PUT so we can report
+ * real upload progress via `onProgress` (0–100). `onProgress` is called with the
+ * percentage of bytes sent; when the file size is unknown it is not called.
  */
-export async function dashboardUploadImage(file: File): Promise<{ url: string }> {
+export async function dashboardUploadImage(
+  file: File,
+  onProgress?: (percent: number) => void,
+): Promise<{ url: string }> {
   const sigRes = await fetch("/api/dashboard/upload-signature", {
     method: "POST",
   });
@@ -68,30 +75,45 @@ export async function dashboardUploadImage(file: File): Promise<{ url: string }>
   body.append("folder", sig.folder);
   body.append("signature", sig.signature);
 
-  let res: Response;
-  try {
-    res = await fetch(
-      `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`,
-      { method: "POST", body },
-    );
-  } catch {
-    throw new Error("Could not reach the image host. Check your connection.");
-  }
+  const endpoint = `https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`;
 
-  if (!res.ok) {
-    let message = "Image upload failed.";
-    try {
-      const j = (await res.json()) as { error?: { message?: string } };
-      if (j.error?.message) message = j.error.message;
-    } catch {
-      /* keep generic message */
-    }
-    throw new Error(message);
-  }
+  return new Promise<{ url: string }>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", endpoint);
 
-  const j = (await res.json()) as { secure_url?: string };
-  if (!j.secure_url || typeof j.secure_url !== "string") {
-    throw new Error("Upload returned no URL.");
-  }
-  return { url: j.secure_url };
+    xhr.upload.onprogress = (event) => {
+      if (!onProgress || !event.lengthComputable) return;
+      const percent = Math.round((event.loaded / event.total) * 100);
+      onProgress(Math.min(100, Math.max(0, percent)));
+    };
+
+    xhr.onerror = () =>
+      reject(new Error("Could not reach the image host. Check your connection."));
+    xhr.ontimeout = () =>
+      reject(new Error("The image upload timed out. Please try again."));
+
+    xhr.onload = () => {
+      let parsed: { secure_url?: string; error?: { message?: string } } = {};
+      try {
+        parsed = JSON.parse(xhr.responseText);
+      } catch {
+        /* fall through to status handling */
+      }
+
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(parsed.error?.message || "Image upload failed."));
+        return;
+      }
+
+      if (!parsed.secure_url || typeof parsed.secure_url !== "string") {
+        reject(new Error("Upload returned no URL."));
+        return;
+      }
+
+      onProgress?.(100);
+      resolve({ url: parsed.secure_url });
+    };
+
+    xhr.send(body);
+  });
 }

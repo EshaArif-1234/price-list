@@ -403,6 +403,7 @@ export function ProductsAdmin() {
   const [loadWarning, setLoadWarning] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [page, setPage] = useState(1);
@@ -629,6 +630,7 @@ export function ProductsAdmin() {
   function resetForm(categoryNames?: string[]) {
     imageUploadSeqRef.current += 1;
     setUploadingImage(false);
+    setUploadProgress(null);
     if (imageFileInputRef.current) imageFileInputRef.current.value = "";
     setImageInput("");
     setNameInput("");
@@ -677,6 +679,7 @@ export function ProductsAdmin() {
     setViewing(null);
     imageUploadSeqRef.current += 1;
     setUploadingImage(false);
+    setUploadProgress(null);
 
     let specs: DashboardSpecificationRow[];
     if (persistBackend === "api") {
@@ -763,16 +766,21 @@ export function ProductsAdmin() {
     const isCurrent = () => seq === imageUploadSeqRef.current;
 
     setUploadingImage(true);
+    setUploadProgress(persistBackend === "api" ? 0 : null);
     setFormError(null);
     try {
       // Downscale/re-encode in the browser so uploads are fast and storage small.
+      // Product images never render larger than a few hundred px, so 1200px / 0.72
+      // keeps them crisp while making the upload several times smaller (= faster).
       const prepared = await compressImageFile(file, {
-        maxDimension: 1600,
-        quality: 0.82,
+        maxDimension: 1200,
+        quality: 0.72,
       });
 
       if (persistBackend === "api") {
-        const { url } = await dashboardUploadImage(prepared);
+        const { url } = await dashboardUploadImage(prepared, (percent) => {
+          if (isCurrent()) setUploadProgress(percent);
+        });
         if (isCurrent()) setImageInput(url);
         return;
       }
@@ -786,7 +794,10 @@ export function ProductsAdmin() {
         );
       }
     } finally {
-      if (isCurrent()) setUploadingImage(false);
+      if (isCurrent()) {
+        setUploadingImage(false);
+        setUploadProgress(null);
+      }
       input.value = "";
     }
   }
@@ -1607,7 +1618,9 @@ export function ProductsAdmin() {
                 {uploadingImage ? (
                   <p className="mt-2 text-[12px] font-medium text-secondary/55">
                     {persistBackend === "api"
-                      ? "Optimizing and uploading…"
+                      ? uploadProgress !== null
+                        ? `Uploading… ${uploadProgress}%`
+                        : "Optimizing image…"
                       : "Optimizing image…"}
                   </p>
                 ) : imageInput.startsWith("data:image/") ? (
@@ -1632,6 +1645,26 @@ export function ProductsAdmin() {
                     unoptimized
                     onError={() => {}}
                   />
+                  {uploadingImage && uploadProgress !== null ? (
+                    <div className="absolute inset-x-0 bottom-0 bg-secondary/75 px-2 pb-1.5 pt-2 backdrop-blur-sm">
+                      <div className="mb-1 flex items-center justify-between text-[10px] font-semibold text-white">
+                        <span>Uploading</span>
+                        <span className="tabular-nums">{uploadProgress}%</span>
+                      </div>
+                      <div
+                        className="h-1.5 w-full overflow-hidden rounded-full bg-white/30"
+                        role="progressbar"
+                        aria-valuenow={uploadProgress}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                      >
+                        <div
+                          className="h-full rounded-full bg-white transition-[width] duration-200 ease-out"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
