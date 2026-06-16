@@ -8,11 +8,22 @@ import { v2 as cloudinary } from "cloudinary";
  * approach failed with 502 on larger images). The API secret never leaves the server.
  */
 
+/**
+ * Reads an env var, trimming whitespace and stripping a single pair of wrapping
+ * quotes. Pasting values into the Vercel dashboard with surrounding quotes is a
+ * common mistake that silently corrupts the API secret and produces Cloudinary
+ * "Invalid Signature" errors, so we defensively clean it here.
+ */
+function readEnv(name: string): string {
+  const raw = process.env[name]?.trim() ?? "";
+  return raw.replace(/^["'](.*)["']$/, "$1").trim();
+}
+
 function cloudinaryConfigured(): boolean {
   return Boolean(
-    process.env.CLOUDINARY_CLOUD_NAME?.trim() &&
-      process.env.CLOUDINARY_API_KEY?.trim() &&
-      process.env.CLOUDINARY_API_SECRET?.trim(),
+    readEnv("CLOUDINARY_CLOUD_NAME") &&
+      readEnv("CLOUDINARY_API_KEY") &&
+      readEnv("CLOUDINARY_API_SECRET"),
   );
 }
 
@@ -27,11 +38,10 @@ export async function POST() {
     );
   }
 
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME!.trim();
-  const apiKey = process.env.CLOUDINARY_API_KEY!.trim();
-  const apiSecret = process.env.CLOUDINARY_API_SECRET!.trim();
-  const folder =
-    process.env.CLOUDINARY_UPLOAD_FOLDER?.trim() || "price-list-products";
+  const cloudName = readEnv("CLOUDINARY_CLOUD_NAME");
+  const apiKey = readEnv("CLOUDINARY_API_KEY");
+  const apiSecret = readEnv("CLOUDINARY_API_SECRET");
+  const folder = readEnv("CLOUDINARY_UPLOAD_FOLDER") || "price-list-products";
   const timestamp = Math.round(Date.now() / 1000);
 
   try {
