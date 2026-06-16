@@ -818,16 +818,29 @@ export function ProductsAdmin() {
       setFormError("Name is required.");
       return;
     }
+    if (!imageInput.trim()) {
+      setFormError("Add a product image.");
+      return;
+    }
+    if (!description) {
+      setFormError("Description is required.");
+      return;
+    }
+    if (priceInput.trim() === "" || !Number.isFinite(priceNum) || priceNum < 0) {
+      setFormError("Price is required and must be zero or greater.");
+      return;
+    }
+    if (
+      stockInput.trim() === "" ||
+      !Number.isFinite(stockNum) ||
+      stockNum < 0 ||
+      !Number.isInteger(stockNum)
+    ) {
+      setFormError("Stock is required and must be a whole number ≥ 0.");
+      return;
+    }
     if (categories.length === 0) {
       setFormError("Select at least one category.");
-      return;
-    }
-    if (!Number.isFinite(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
-      setFormError("Stock must be a whole number ≥ 0.");
-      return;
-    }
-    if (!Number.isFinite(priceNum) || priceNum < 0) {
-      setFormError("Price must be zero or greater.");
       return;
     }
 
@@ -1592,7 +1605,7 @@ export function ProductsAdmin() {
 
               <div>
                 <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                  Image
+                  Image <span className="text-red-500">*</span>
                 </span>
                 <input
                   ref={imageFileInputRef}
@@ -1672,7 +1685,7 @@ export function ProductsAdmin() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                    Name
+                    Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     value={nameInput}
@@ -1686,7 +1699,7 @@ export function ProductsAdmin() {
                 </div>
                 <div>
                   <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                    Price (PKR)
+                    Price (PKR) <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -1699,7 +1712,7 @@ export function ProductsAdmin() {
                 </div>
                 <div>
                   <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                    Stock
+                    Stock <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="number"
@@ -1770,7 +1783,7 @@ export function ProductsAdmin() {
 
               <div>
                 <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                  Description
+                  Description <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   value={descriptionInput}
