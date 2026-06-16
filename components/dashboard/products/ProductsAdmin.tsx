@@ -2049,7 +2049,7 @@ export function ProductsAdmin() {
 
       {toast ? (
         <div
-          className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[120] flex justify-center px-4"
+          className="pointer-events-none fixed inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-[120] flex justify-center px-4"
           role="status"
           aria-live="polite"
         >
