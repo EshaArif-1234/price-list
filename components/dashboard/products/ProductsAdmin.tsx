@@ -769,12 +769,13 @@ export function ProductsAdmin() {
     setUploadProgress(persistBackend === "api" ? 0 : null);
     setFormError(null);
     try {
-      // Downscale/re-encode in the browser so uploads are fast and storage small.
-      // Product images never render larger than a few hundred px, so 1200px / 0.72
-      // keeps them crisp while making the upload several times smaller (= faster).
+      // Downscale/re-encode in the browser before upload. We keep a sharp-ish
+      // source (1600px / 0.86) so cards and the detail page stay crisp; Cloudinary
+      // then delivers small, auto-optimized variants (f_auto,q_auto) per display,
+      // so a higher-quality source does not slow down page loads.
       const prepared = await compressImageFile(file, {
-        maxDimension: 1200,
-        quality: 0.72,
+        maxDimension: 1600,
+        quality: 0.86,
       });
 
       if (persistBackend === "api") {

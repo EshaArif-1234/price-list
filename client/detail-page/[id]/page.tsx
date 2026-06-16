@@ -87,6 +87,7 @@ export default async function ProductDetailPage({ params }: PageProps) {
             alt={product.name}
             fill
             priority
+            width={700}
             sizes="(max-width: 640px) 96vw, (max-width: 1024px) 92vw, (max-width: 1280px) 45vw, 560px"
             className="object-cover"
           />
