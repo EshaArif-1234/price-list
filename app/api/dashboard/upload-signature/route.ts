@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 
@@ -65,4 +67,30 @@ export async function POST() {
       { status: 500 },
     );
   }
+}
+
+/**
+ * Safe credential diagnostic. Returns the cloud name, the API key, and a short
+ * SHA-256 fingerprint of the secret (NOT the secret itself), so you can compare
+ * local vs. live to confirm whether the deployed `CLOUDINARY_API_SECRET` differs
+ * from the one that actually works. Open `/api/dashboard/upload-signature` in the
+ * browser (while signed in) on both environments and compare `secretFingerprint`.
+ */
+export async function GET() {
+  const cloudName = readEnv("CLOUDINARY_CLOUD_NAME");
+  const apiKey = readEnv("CLOUDINARY_API_KEY");
+  const apiSecret = readEnv("CLOUDINARY_API_SECRET");
+
+  const secretFingerprint = apiSecret
+    ? createHash("sha256").update(apiSecret).digest("hex").slice(0, 12)
+    : null;
+
+  return NextResponse.json({
+    configured: cloudinaryConfigured(),
+    cloudName: cloudName || null,
+    apiKey: apiKey || null,
+    apiKeyLength: apiKey.length,
+    secretLength: apiSecret.length,
+    secretFingerprint,
+  });
 }
