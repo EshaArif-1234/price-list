@@ -411,6 +411,7 @@ export function ProductsAdmin() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewing, setViewing] = useState<Product | null>(null);
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [toast, setToast] = useState<{
     kind: "success" | "error";
@@ -978,15 +979,26 @@ export function ProductsAdmin() {
     setModalOpen(false);
     setEditingId(null);
     setFormError(null);
+    setDeleteConfirmInput("");
     setPendingDelete(p);
   }, []);
 
-  const closeDelete = useCallback(() => setPendingDelete(null), []);
+  const closeDelete = useCallback(() => {
+    setPendingDelete(null);
+    setDeleteConfirmInput("");
+  }, []);
+
+  const deleteConfirmMatches =
+    pendingDelete !== null &&
+    deleteConfirmInput.trim().toLowerCase() ===
+      pendingDelete.name.trim().toLowerCase();
 
   async function confirmDelete() {
     if (!pendingDelete) return;
+    if (!deleteConfirmMatches) return;
     const id = pendingDelete.id;
     setPendingDelete(null);
+    setDeleteConfirmInput("");
     setViewing((v) => (v?.id === id ? null : v));
 
     if (persistBackend === "api") {
@@ -2035,9 +2047,36 @@ export function ProductsAdmin() {
           </div>
           <div className="px-4 pb-2 pt-4 sm:px-6">
             {pendingDelete ? (
-              <p className="rounded-xl border border-secondary/10  px-3 py-2 text-[14px] font-medium text-secondary">
-                {pendingDelete.name}
-              </p>
+              <>
+                <p className="rounded-xl border border-secondary/10  px-3 py-2 text-[14px] font-medium text-secondary">
+                  {pendingDelete.name}
+                </p>
+                <label
+                  htmlFor="delete-product-confirm"
+                  className="mt-3 block text-[13px] text-secondary/70"
+                >
+                  Type the product name{" "}
+                  <span className="font-semibold text-secondary">
+                    {pendingDelete.name}
+                  </span>{" "}
+                  to confirm.
+                </label>
+                <input
+                  id="delete-product-confirm"
+                  type="text"
+                  value={deleteConfirmInput}
+                  onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && deleteConfirmMatches) {
+                      e.preventDefault();
+                      void confirmDelete();
+                    }
+                  }}
+                  placeholder="Enter product name"
+                  autoComplete="off"
+                  className="mt-2 min-h-11 w-full rounded-xl border border-secondary/15 bg-white px-3.5 py-2.5 text-[15px] text-secondary outline-none ring-red-500 transition-[box-shadow,border-color] placeholder:text-secondary/35 focus-visible:border-transparent focus-visible:ring-2"
+                />
+              </>
             ) : null}
           </div>
           <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:px-6 sm:pb-4">
@@ -2052,7 +2091,8 @@ export function ProductsAdmin() {
             <button
               type="button"
               onClick={confirmDelete}
-              className={`${destructiveBtn} ${touchFullSmAuto}`}
+              disabled={!deleteConfirmMatches}
+              className={`${destructiveBtn} ${touchFullSmAuto} disabled:cursor-not-allowed disabled:opacity-40`}
             >
               <IconTrash className="size-[17px] opacity-95" />
               Delete product

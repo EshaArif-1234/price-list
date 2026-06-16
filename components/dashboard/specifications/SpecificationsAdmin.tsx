@@ -183,6 +183,44 @@ function IconAlertTriangle({ className }: { className?: string }) {
   );
 }
 
+function IconCheckCircle({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <path d="m9 11 3 3L22 4" />
+    </svg>
+  );
+}
+
+function IconSearch({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
 function IconLayers({ className }: { className?: string }) {
   return (
     <svg
@@ -245,11 +283,18 @@ export function SpecificationsAdmin() {
   const [rows, setRows] = useState<DashboardSpecificationRow[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [keyInput, setKeyInput] = useState("");
+  const [keyError, setKeyError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] =
     useState<DashboardSpecificationRow | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
+  const [toast, setToast] = useState<{
+    kind: "success" | "error";
+    message: string;
+  } | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const deleteDialogRef = useRef<HTMLDialogElement>(null);
   const keyInputRef = useRef<HTMLInputElement>(null);
@@ -282,12 +327,29 @@ export function SpecificationsAdmin() {
     persistRows(rows);
   }, [rows, hydrated]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = window.setTimeout(() => setToast(null), 4000);
+    return () => window.clearTimeout(t);
+  }, [toast]);
+
   const pageSize = SPECIFICATION_LIST_PAGE_SIZE;
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+
+  const filteredRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) => r.key.toLowerCase().includes(q));
+  }, [rows, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   useEffect(() => {
     const d = dialogRef.current;
@@ -313,13 +375,24 @@ export function SpecificationsAdmin() {
 
   const paginatedRows = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return rows.slice(start, start + pageSize);
-  }, [rows, page, pageSize]);
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, page, pageSize]);
+
+  const duplicateKey = useCallback(
+    (key: string, excludeId: string | null) => {
+      const k = key.trim().toLowerCase();
+      return rows.some(
+        (r) => r.id !== excludeId && r.key.trim().toLowerCase() === k,
+      );
+    },
+    [rows],
+  );
 
   const openAdd = useCallback(() => {
     setPendingDelete(null);
     setEditingId(null);
     setKeyInput("");
+    setKeyError(null);
     setModalOpen(true);
   }, []);
 
@@ -327,6 +400,7 @@ export function SpecificationsAdmin() {
     setPendingDelete(null);
     setEditingId(row.id);
     setKeyInput(row.key);
+    setKeyError(null);
     setModalOpen(true);
   }, []);
 
@@ -334,25 +408,41 @@ export function SpecificationsAdmin() {
     setModalOpen(false);
     setEditingId(null);
     setKeyInput("");
+    setKeyError(null);
   }, []);
 
   const requestDelete = useCallback(
     (row: DashboardSpecificationRow) => {
       closeModal();
+      setDeleteConfirmInput("");
       setPendingDelete(row);
     },
     [closeModal],
   );
 
+  const deleteConfirmMatches =
+    pendingDelete !== null &&
+    deleteConfirmInput.trim().toLowerCase() ===
+      pendingDelete.key.trim().toLowerCase();
+
   async function handleSave(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const key = keyInput.trim();
-    if (!key) return;
+    if (!key) {
+      setKeyError("Enter a specification label.");
+      return;
+    }
+    if (duplicateKey(key, editingId)) {
+      setKeyError("This specification is already created.");
+      return;
+    }
+    setKeyError(null);
 
     const existingRow = editingId
       ? rows.find((r) => r.id === editingId)
       : null;
     const value = existingRow?.value?.trim() ?? "";
+    const isEditing = editingId !== null;
 
     if (dashboardUsesMongoDb()) {
       try {
@@ -375,12 +465,23 @@ export function SpecificationsAdmin() {
             },
           );
           setRows(next);
-          const lastPage = Math.max(1, Math.ceil(next.length / pageSize));
-          setPage(lastPage);
+          setPage(1);
         }
         closeModal();
-      } catch {
-        /* keep modal open; optional: toast */
+        setToast({
+          kind: "success",
+          message: isEditing
+            ? "Specification edited successfully."
+            : "Specification created successfully.",
+        });
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : "Could not save specification.";
+        if (message.includes("already created")) {
+          setKeyError(message);
+        } else {
+          setToast({ kind: "error", message });
+        }
       }
       return;
     }
@@ -392,27 +493,29 @@ export function SpecificationsAdmin() {
         ),
       );
     } else {
-      setRows((prev) => {
-        const next = [
-          ...prev,
-          { id: crypto.randomUUID(), key, value: "" },
-        ];
-        const lastPage = Math.max(1, Math.ceil(next.length / pageSize));
-        setPage(lastPage);
-        return next;
-      });
+      setRows((prev) => [{ id: crypto.randomUUID(), key, value: "" }, ...prev]);
+      setPage(1);
     }
     closeModal();
+    setToast({
+      kind: "success",
+      message: isEditing
+        ? "Specification edited successfully."
+        : "Specification created successfully.",
+    });
   }
 
   const closeDeleteDialog = useCallback(() => {
     setPendingDelete(null);
+    setDeleteConfirmInput("");
   }, []);
 
   async function confirmDeleteSpecification() {
     if (!pendingDelete) return;
+    if (!deleteConfirmMatches) return;
     const id = pendingDelete.id;
     setPendingDelete(null);
+    setDeleteConfirmInput("");
 
     if (dashboardUsesMongoDb()) {
       try {
@@ -421,19 +524,33 @@ export function SpecificationsAdmin() {
           { method: "DELETE" },
         );
         setRows(next);
-      } catch {
-        setRows((prev) => prev.filter((r) => r.id !== id));
+        setToast({
+          kind: "success",
+          message: "Specification deleted successfully.",
+        });
+      } catch (err) {
+        setToast({
+          kind: "error",
+          message:
+            err instanceof Error
+              ? err.message
+              : "Could not delete specification.",
+        });
       }
       return;
     }
 
     setRows((prev) => prev.filter((r) => r.id !== id));
+    setToast({
+      kind: "success",
+      message: "Specification deleted successfully.",
+    });
   }
 
   const canPrev = page > 1;
   const canNext = page < totalPages;
-  const rangeStart = rows.length === 0 ? 0 : (page - 1) * pageSize + 1;
-  const rangeEnd = Math.min(page * pageSize, rows.length);
+  const rangeStart = filteredRows.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, filteredRows.length);
 
   const touchFullSmAuto = "w-full min-[480px]:w-auto";
 
@@ -568,7 +685,22 @@ export function SpecificationsAdmin() {
         </div>
       </header>
 
-      <section className="mt-8 overflow-hidden rounded-xl border border-secondary/[0.09] bg-white shadow-[0_1px_3px_rgba(15,76,105,0.06),0_8px_24px_-8px_rgba(15,76,105,0.08)] sm:mt-10 sm:rounded-2xl">
+      <div className="mt-8 sm:mt-10">
+        <label className="relative block lg:max-w-md">
+          <span className="sr-only">Search specifications</span>
+          <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-secondary/40" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search specifications…"
+            className={`${inputClass} min-h-12 pl-10`}
+            autoComplete="off"
+          />
+        </label>
+      </div>
+
+      <section className="mt-5 overflow-hidden rounded-xl border border-secondary/[0.09] bg-white shadow-[0_1px_3px_rgba(15,76,105,0.06),0_8px_24px_-8px_rgba(15,76,105,0.08)] sm:mt-6 sm:rounded-2xl">
         <div className="border-b border-secondary/[0.06] px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2 className="text-[15px] font-semibold text-secondary">
@@ -617,22 +749,46 @@ export function SpecificationsAdmin() {
           <div className="px-4 py-14 sm:px-6 sm:py-[4.5rem]">
             <div className="mx-auto flex max-w-sm flex-col items-center text-center">
               <div className="flex size-14 items-center justify-center rounded-2xl border border-secondary/10  text-secondary/35">
-                <IconLayers className="size-7" />
+                {searchQuery.trim() ? (
+                  <IconSearch className="size-7" />
+                ) : (
+                  <IconLayers className="size-7" />
+                )}
               </div>
-              <p className="mt-5 text-[15px] font-semibold text-secondary">
-                No specifications yet
-              </p>
-              <p className="mt-2 text-[13px] leading-relaxed text-secondary/48">
-                Create your first label to reuse when editing products.
-              </p>
-              <button
-                type="button"
-                onClick={openAdd}
-                className={`${primaryBtn} ${touchFullSmAuto} mt-6 max-w-xs`}
-              >
-                <IconPlus className="size-[18px]" />
-                New specification
-              </button>
+              {searchQuery.trim() ? (
+                <>
+                  <p className="mt-5 text-[15px] font-semibold text-secondary">
+                    No specifications match “{searchQuery.trim()}”
+                  </p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-secondary/48">
+                    Try a different search term.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className={`${ghostBtn} ${touchFullSmAuto} mt-6 max-w-xs`}
+                  >
+                    Clear search
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mt-5 text-[15px] font-semibold text-secondary">
+                    No specifications yet
+                  </p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-secondary/48">
+                    Create your first label to reuse when editing products.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openAdd}
+                    className={`${primaryBtn} ${touchFullSmAuto} mt-6 max-w-xs`}
+                  >
+                    <IconPlus className="size-[18px]" />
+                    New specification
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -675,7 +831,7 @@ export function SpecificationsAdmin() {
           </>
         )}
 
-        {hydrated && rows.length > pageSize ? (
+        {hydrated && filteredRows.length > pageSize ? (
           <footer className="flex flex-col gap-4 border-t border-secondary/[0.06] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-center text-[13px] text-secondary/48 sm:text-left">
               Showing{" "}
@@ -688,7 +844,7 @@ export function SpecificationsAdmin() {
               </span>
               <span className="text-secondary/40"> of </span>
               <span className="font-semibold tabular-nums text-secondary">
-                {rows.length}
+                {filteredRows.length}
               </span>
             </p>
             <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
@@ -781,11 +937,25 @@ export function SpecificationsAdmin() {
                   id="spec-key"
                   name="key"
                   value={keyInput}
-                  onChange={(e) => setKeyInput(e.target.value)}
+                  onChange={(e) => {
+                    setKeyInput(e.target.value);
+                    setKeyError(null);
+                  }}
                   placeholder="e.g. Material"
                   autoComplete="off"
                   className={inputClass}
+                  aria-invalid={keyError ? true : undefined}
+                  aria-describedby={keyError ? "spec-key-error" : undefined}
                 />
+                {keyError ? (
+                  <p
+                    id="spec-key-error"
+                    className="mt-2 text-[13px] font-medium text-red-700"
+                    role="alert"
+                  >
+                    {keyError}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>
@@ -858,26 +1028,53 @@ export function SpecificationsAdmin() {
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-2 sm:px-6">
           {pendingDelete ? (
-            <div className="mt-2 rounded-xl border border-secondary/[0.08] px-4 py-3 sm:mt-4">
-              <dl className="grid gap-2 text-[13px]">
-                <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                    Key
-                  </dt>
-                  <dd className="mt-0.5 break-words font-medium text-secondary">
-                    {pendingDelete.key}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                    Value
-                  </dt>
-                  <dd className="mt-0.5 break-words text-secondary/85">
-                    {pendingDelete.value}
-                  </dd>
-                </div>
-              </dl>
-            </div>
+            <>
+              <div className="mt-2 rounded-xl border border-secondary/[0.08] px-4 py-3 sm:mt-4">
+                <dl className="grid gap-2 text-[13px]">
+                  <div>
+                    <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
+                      Key
+                    </dt>
+                    <dd className="mt-0.5 break-words font-medium text-secondary">
+                      {pendingDelete.key}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
+                      Value
+                    </dt>
+                    <dd className="mt-0.5 break-words text-secondary/85">
+                      {pendingDelete.value}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+              <label
+                htmlFor="delete-spec-confirm"
+                className="mt-3 block text-[13px] text-secondary/70"
+              >
+                Type the label{" "}
+                <span className="font-semibold text-secondary">
+                  {pendingDelete.key}
+                </span>{" "}
+                to confirm.
+              </label>
+              <input
+                id="delete-spec-confirm"
+                type="text"
+                value={deleteConfirmInput}
+                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && deleteConfirmMatches) {
+                    e.preventDefault();
+                    void confirmDeleteSpecification();
+                  }
+                }}
+                placeholder="Enter label"
+                autoComplete="off"
+                className="mt-2 min-h-11 w-full rounded-xl border border-secondary/15 bg-white px-3.5 py-2.5 text-[15px] text-secondary outline-none ring-red-500 transition-[box-shadow,border-color] placeholder:text-secondary/35 focus-visible:border-transparent focus-visible:ring-2"
+              />
+            </>
           ) : null}
         </div>
 
@@ -893,7 +1090,8 @@ export function SpecificationsAdmin() {
           <button
             type="button"
             onClick={confirmDeleteSpecification}
-            className={`${destructiveBtn} ${touchFullSmAuto}`}
+            disabled={!deleteConfirmMatches}
+            className={`${destructiveBtn} ${touchFullSmAuto} disabled:cursor-not-allowed disabled:opacity-40`}
           >
             <IconTrash className="size-[17px] opacity-95" />
             Delete specification
@@ -901,6 +1099,41 @@ export function SpecificationsAdmin() {
         </div>
         </div>
       </dialog>
+
+      {toast ? (
+        <div
+          className="pointer-events-none fixed inset-x-0 top-[max(1rem,env(safe-area-inset-top))] z-[120] flex justify-center px-4"
+          role="status"
+          aria-live="polite"
+        >
+          <div
+            className={`pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border px-4 py-3 shadow-[0_12px_32px_-12px_rgba(15,76,105,0.45)] ${
+              toast.kind === "success"
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-red-200 bg-red-50 text-red-900"
+            }`}
+          >
+            <span className="mt-0.5 shrink-0">
+              {toast.kind === "success" ? (
+                <IconCheckCircle className="size-5 text-emerald-600" />
+              ) : (
+                <IconAlertTriangle className="size-5 text-red-600" />
+              )}
+            </span>
+            <p className="min-w-0 flex-1 text-[13px] font-medium leading-relaxed">
+              {toast.message}
+            </p>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="-mr-1 -mt-1 inline-flex size-7 shrink-0 items-center justify-center rounded-lg opacity-60 transition-opacity hover:opacity-100"
+              aria-label="Dismiss notification"
+            >
+              <IconX className="size-4" />
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -16,7 +16,7 @@ type ProductDoc = Omit<Product, "id"> & { _id: string; createdAt?: Date };
 
 type CategoryDoc = { _id: string; name: string; createdAt?: Date };
 
-type SpecificationDoc = { _id: string; key: string; value: string };
+type SpecificationDoc = { _id: string; key: string; value: string; createdAt?: Date };
 
 export async function listProducts(): Promise<Product[]> {
   const db = await getMongoDb();
@@ -116,7 +116,8 @@ export async function listSpecifications(): Promise<DashboardSpecificationRow[]>
   if ((await col.countDocuments()) === 0) {
     return [];
   }
-  const docs = await col.find({}).toArray();
+  // Newest first; specs created before `createdAt` existed sort to the bottom.
+  const docs = await col.find({}).sort({ createdAt: -1, _id: -1 }).toArray();
   return docs.map((d) => ({
     id: String(d._id),
     key: String(d.key),
@@ -132,6 +133,7 @@ export async function insertSpecification(
     _id: row.id,
     key: row.key,
     value: row.value,
+    createdAt: new Date(),
   });
 }
 

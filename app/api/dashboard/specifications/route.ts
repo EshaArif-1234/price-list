@@ -37,6 +37,13 @@ export async function POST(req: Request) {
     if (!key.length) {
       return NextResponse.json({ error: "Key is required." }, { status: 400 });
     }
+    const existing = await listSpecifications();
+    if (existing.some((s) => s.key.trim().toLowerCase() === key.toLowerCase())) {
+      return NextResponse.json(
+        { error: "This specification is already created." },
+        { status: 409 },
+      );
+    }
     await insertSpecification({
       id: row.id.trim(),
       key,

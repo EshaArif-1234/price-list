@@ -31,9 +31,21 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Invalid category payload." }, { status: 400 });
     }
     const row = body as DashboardCategoryRow;
+    const name = row.name.trim().replace(/\s+/g, " ");
+    const existing = await listCategories();
+    if (
+      existing.some(
+        (c) => c.name.trim().replace(/\s+/g, " ").toLowerCase() === name.toLowerCase(),
+      )
+    ) {
+      return NextResponse.json(
+        { error: "This category is already created." },
+        { status: 409 },
+      );
+    }
     await insertCategory({
       id: row.id.trim(),
-      name: row.name.trim().replace(/\s+/g, " "),
+      name,
     });
     const rows = await listCategories();
     return NextResponse.json(rows);

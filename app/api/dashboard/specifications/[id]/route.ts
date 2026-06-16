@@ -28,6 +28,17 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
     if (!key.length) {
       return NextResponse.json({ error: "Key is required." }, { status: 400 });
     }
+    const existing = await listSpecifications();
+    if (
+      existing.some(
+        (s) => s.id !== id && s.key.trim().toLowerCase() === key.toLowerCase(),
+      )
+    ) {
+      return NextResponse.json(
+        { error: "This specification is already created." },
+        { status: 409 },
+      );
+    }
     await updateSpecification({ id, key, value });
     const rows = await listSpecifications();
     return NextResponse.json(rows);

@@ -192,6 +192,25 @@ function IconAlertTriangle({ className }: { className?: string }) {
   );
 }
 
+function IconSearch({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
 function IconCheckCircle({ className }: { className?: string }) {
   return (
     <svg
@@ -278,12 +297,14 @@ export function CategoriesAdmin() {
     message: string;
   } | null>(null);
   const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] =
     useState<DashboardCategoryRow | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState("");
   const dialogRef = useRef<HTMLDialogElement>(null);
   const deleteDialogRef = useRef<HTMLDialogElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -364,11 +385,22 @@ export function CategoriesAdmin() {
   }, [modalOpen, pendingDelete]);
 
   const pageSize = CATEGORY_LIST_PAGE_SIZE;
-  const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+
+  const filteredRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) => r.name.toLowerCase().includes(q));
+  }, [rows, searchQuery]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
 
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
 
   useEffect(() => {
     const d = dialogRef.current;
@@ -394,14 +426,16 @@ export function CategoriesAdmin() {
 
   const paginatedRows = useMemo(() => {
     const start = (page - 1) * pageSize;
-    return rows.slice(start, start + pageSize);
-  }, [rows, page, pageSize]);
+    return filteredRows.slice(start, start + pageSize);
+  }, [filteredRows, page, pageSize]);
 
   const duplicateName = useCallback(
     (name: string, excludeId: string | null) => {
       const n = normalizeCategoryName(name).toLowerCase();
       return rows.some(
-        (r) => r.id !== excludeId && r.name.toLowerCase() === n,
+        (r) =>
+          r.id !== excludeId &&
+          normalizeCategoryName(r.name).toLowerCase() === n,
       );
     },
     [rows],
@@ -433,10 +467,16 @@ export function CategoriesAdmin() {
   const requestDelete = useCallback(
     (row: DashboardCategoryRow) => {
       closeModal();
+      setDeleteConfirmInput("");
       setPendingDelete(row);
     },
     [closeModal],
   );
+
+  const deleteConfirmMatches =
+    pendingDelete !== null &&
+    deleteConfirmInput.trim().toLowerCase() ===
+      pendingDelete.name.trim().toLowerCase();
 
   async function handleSave(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -446,7 +486,7 @@ export function CategoriesAdmin() {
       return;
     }
     if (duplicateName(name, editingId)) {
-      setNameError("A category with this name already exists.");
+      setNameError("This category is already created.");
       return;
     }
     setNameError(null);
@@ -507,14 +547,17 @@ export function CategoriesAdmin() {
 
   const closeDeleteDialog = useCallback(() => {
     setPendingDelete(null);
+    setDeleteConfirmInput("");
   }, []);
 
   async function confirmDeleteCategory() {
     if (!pendingDelete) return;
+    if (!deleteConfirmMatches) return;
     const row = pendingDelete;
     const id = row.id;
     const categoryLabel = row.name;
     setPendingDelete(null);
+    setDeleteConfirmInput("");
 
     if (persistBackend === "api") {
       try {
@@ -560,8 +603,8 @@ export function CategoriesAdmin() {
 
   const canPrev = page > 1;
   const canNext = page < totalPages;
-  const rangeStart = rows.length === 0 ? 0 : (page - 1) * pageSize + 1;
-  const rangeEnd = Math.min(page * pageSize, rows.length);
+  const rangeStart = filteredRows.length === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, filteredRows.length);
 
   const touchFullSmAuto = "w-full min-[480px]:w-auto";
 
@@ -729,7 +772,22 @@ export function CategoriesAdmin() {
         </div>
       ) : null}
 
-      <section className="mt-8 overflow-hidden rounded-xl border border-secondary/[0.09] bg-white shadow-[0_1px_3px_rgba(15,76,105,0.06),0_8px_24px_-8px_rgba(15,76,105,0.08)] sm:mt-10 sm:rounded-2xl">
+      <div className="mt-8 sm:mt-10">
+        <label className="relative block lg:max-w-md">
+          <span className="sr-only">Search categories</span>
+          <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-secondary/40" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search categories…"
+            className={`${inputClass} min-h-12 pl-10`}
+            autoComplete="off"
+          />
+        </label>
+      </div>
+
+      <section className="mt-5 overflow-hidden rounded-xl border border-secondary/[0.09] bg-white shadow-[0_1px_3px_rgba(15,76,105,0.06),0_8px_24px_-8px_rgba(15,76,105,0.08)] sm:mt-6 sm:rounded-2xl">
         <div className="border-b border-secondary/[0.06] px-4 py-4 sm:px-6">
           <div className="min-w-0">
             <h2 className="text-[15px] font-semibold text-secondary">
@@ -779,22 +837,46 @@ export function CategoriesAdmin() {
           <div className="px-4 py-14 sm:px-6 sm:py-[4.5rem]">
             <div className="mx-auto flex max-w-sm flex-col items-center text-center">
               <div className="flex size-14 items-center justify-center rounded-2xl border border-secondary/10  text-secondary/35">
-                <IconFolder className="size-7" />
+                {searchQuery.trim() ? (
+                  <IconSearch className="size-7" />
+                ) : (
+                  <IconFolder className="size-7" />
+                )}
               </div>
-              <p className="mt-5 text-[15px] font-semibold text-secondary">
-                No categories yet
-              </p>
-              <p className="mt-2 text-[13px] leading-relaxed text-secondary/48">
-                Add a category to classify products in the catalog.
-              </p>
-              <button
-                type="button"
-                onClick={openAdd}
-                className={`${primaryBtn} ${touchFullSmAuto} mt-6 max-w-xs`}
-              >
-                <IconPlus className="size-[18px]" />
-                New category
-              </button>
+              {searchQuery.trim() ? (
+                <>
+                  <p className="mt-5 text-[15px] font-semibold text-secondary">
+                    No categories match “{searchQuery.trim()}”
+                  </p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-secondary/48">
+                    Try a different search term.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className={`${ghostBtn} ${touchFullSmAuto} mt-6 max-w-xs`}
+                  >
+                    Clear search
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="mt-5 text-[15px] font-semibold text-secondary">
+                    No categories yet
+                  </p>
+                  <p className="mt-2 text-[13px] leading-relaxed text-secondary/48">
+                    Add a category to classify products in the catalog.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={openAdd}
+                    className={`${primaryBtn} ${touchFullSmAuto} mt-6 max-w-xs`}
+                  >
+                    <IconPlus className="size-[18px]" />
+                    New category
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -832,7 +914,7 @@ export function CategoriesAdmin() {
           </>
         )}
 
-        {hydrated && rows.length > pageSize ? (
+        {hydrated && filteredRows.length > pageSize ? (
           <footer className="flex flex-col gap-4 border-t border-secondary/[0.06] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <p className="text-center text-[13px] text-secondary/48 sm:text-left">
               Showing{" "}
@@ -845,7 +927,7 @@ export function CategoriesAdmin() {
               </span>
               <span className="text-secondary/40"> of </span>
               <span className="font-semibold tabular-nums text-secondary">
-                {rows.length}
+                {filteredRows.length}
               </span>
             </p>
             <div className="flex w-full flex-col items-stretch gap-3 sm:w-auto sm:flex-row sm:items-center sm:justify-end">
@@ -1021,14 +1103,41 @@ export function CategoriesAdmin() {
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-2 sm:px-6">
             {pendingDelete ? (
-              <div className="mt-2 rounded-xl border border-secondary/[0.08] px-4 py-3 sm:mt-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                  Category
-                </p>
-                <p className="mt-1 break-words text-[15px] font-medium text-secondary">
-                  {pendingDelete.name}
-                </p>
-              </div>
+              <>
+                <div className="mt-2 rounded-xl border border-secondary/[0.08] px-4 py-3 sm:mt-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
+                    Category
+                  </p>
+                  <p className="mt-1 break-words text-[15px] font-medium text-secondary">
+                    {pendingDelete.name}
+                  </p>
+                </div>
+                <label
+                  htmlFor="delete-category-confirm"
+                  className="mt-3 block text-[13px] text-secondary/70"
+                >
+                  Type the category name{" "}
+                  <span className="font-semibold text-secondary">
+                    {pendingDelete.name}
+                  </span>{" "}
+                  to confirm.
+                </label>
+                <input
+                  id="delete-category-confirm"
+                  type="text"
+                  value={deleteConfirmInput}
+                  onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && deleteConfirmMatches) {
+                      e.preventDefault();
+                      void confirmDeleteCategory();
+                    }
+                  }}
+                  placeholder="Enter category name"
+                  autoComplete="off"
+                  className="mt-2 min-h-11 w-full rounded-xl border border-secondary/15 bg-white px-3.5 py-2.5 text-[15px] text-secondary outline-none ring-red-500 transition-[box-shadow,border-color] placeholder:text-secondary/35 focus-visible:border-transparent focus-visible:ring-2"
+                />
+              </>
             ) : null}
           </div>
 
@@ -1044,7 +1153,8 @@ export function CategoriesAdmin() {
             <button
               type="button"
               onClick={confirmDeleteCategory}
-              className={`${destructiveBtn} ${touchFullSmAuto}`}
+              disabled={!deleteConfirmMatches}
+              className={`${destructiveBtn} ${touchFullSmAuto} disabled:cursor-not-allowed disabled:opacity-40`}
             >
               <IconTrash className="size-[17px] opacity-95" />
               Delete category

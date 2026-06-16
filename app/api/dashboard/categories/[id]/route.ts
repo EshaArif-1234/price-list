@@ -24,6 +24,19 @@ export async function PATCH(req: Request, ctx: RouteCtx) {
     if (!name.length) {
       return NextResponse.json({ error: "Name is required." }, { status: 400 });
     }
+    const existing = await listCategories();
+    if (
+      existing.some(
+        (c) =>
+          c.id !== id &&
+          c.name.trim().replace(/\s+/g, " ").toLowerCase() === name.toLowerCase(),
+      )
+    ) {
+      return NextResponse.json(
+        { error: "This category is already created." },
+        { status: 409 },
+      );
+    }
     await updateCategory({ id, name });
     const rows = await listCategories();
     return NextResponse.json(rows);
