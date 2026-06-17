@@ -94,7 +94,7 @@ export function CatalogProductImage({
   if (!isPublicAssetPath(effective)) {
     const fillImgClass =
       fill === true
-        ? ["absolute inset-0 h-full w-full object-cover", className]
+        ? ["absolute inset-0 h-full w-full", className ?? "object-cover"]
             .filter(Boolean)
             .join(" ")
         : className;

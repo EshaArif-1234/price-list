@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { CatalogProductImage } from "@/components/products/CatalogProductImage";
 import { CatalogWidth } from "@/components/layout/CatalogWidth";
-import { BackToCatalogLink } from "@/components/catalog/BackToCatalogLink";
+import { ProductDetailBreadcrumbs } from "@/components/catalog/ProductDetailBreadcrumbs";
 import { getStockDetailText } from "@/lib/catalog/stock-status";
 import { getCatalogProductById } from "@/lib/catalog/server-catalog";
 import { formatCatalogPrice } from "@/lib/format-product-price";
@@ -25,22 +24,13 @@ export async function generateMetadata({
   };
 }
 
-function stockBlock(stock: number) {
-  const { text, tone } = getStockDetailText(stock);
-  const className =
-    tone === "ok"
-      ? "font-semibold text-green-700"
-      : "font-semibold text-red-700";
-  return <span className={className}>{text}</span>;
-}
-
 function brandBadge(brand: ProductBrand) {
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide sm:px-3 sm:text-xs ${
+      className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide sm:text-[13px] ${
         brand === "Ambassador"
-          ? "bg-secondary/12 text-secondary"
-          : "bg-primary/12 text-primary"
+          ? "border-secondary/25 bg-secondary/[0.06] text-secondary"
+          : "border-primary/35 bg-primary/[0.06] text-primary"
       }`}
     >
       {brand}
@@ -48,23 +38,15 @@ function brandBadge(brand: ProductBrand) {
   );
 }
 
-function DetailRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-1 border-b border-muted py-2.5 last:border-b-0 sm:flex-row sm:items-start sm:justify-between sm:gap-x-4 sm:py-3 md:items-center">
-      <dt className="shrink-0 text-xs font-medium text-secondary/65 sm:text-sm">
-        {label}
-      </dt>
-      <dd className="min-w-0 flex-1 text-left text-[15px] text-secondary sm:text-right md:text-base md:text-secondary">
-        {children}
-      </dd>
-    </div>
-  );
+function stockLabel(stock: number) {
+  const { text, tone } = getStockDetailText(stock);
+  const className =
+    tone === "ok"
+      ? "text-green-700"
+      : tone === "low"
+        ? "text-red-700"
+        : "text-red-700";
+  return <span className={`text-sm font-medium ${className}`}>{text}</span>;
 }
 
 function splitSpecifications(specs: ProductSpecification[]) {
@@ -83,12 +65,12 @@ function SpecColumn({ specs }: { specs: ProductSpecification[] }) {
       {specs.map((spec, index) => (
         <div
           key={`${spec.label}-${index}`}
-          className="flex items-baseline justify-between gap-x-4 border-b border-secondary/10 py-3 last:border-b-0"
+          className="flex items-baseline justify-between gap-x-4 border-b border-secondary/[0.08] py-3.5 last:border-b-0"
         >
           <dt className="shrink-0 text-[13px] font-bold text-secondary sm:text-sm">
             {spec.label}:
           </dt>
-          <dd className="min-w-0 text-right text-[13px] leading-snug text-secondary/90 sm:text-sm">
+          <dd className="min-w-0 text-right text-[13px] leading-snug text-secondary/85 sm:text-sm">
             {spec.value.trim() ? spec.value : "—"}
           </dd>
         </div>
@@ -103,77 +85,69 @@ export default async function ProductDetailPage({ params }: PageProps) {
   if (!product) notFound();
 
   const specColumns = splitSpecifications(product.specifications);
+  const categoryLine =
+    product.categories.length > 0 ? product.categories.join(" · ") : "Uncategorized";
 
   return (
-    <CatalogWidth className="flex min-w-0 flex-1 flex-col py-5 sm:py-7 lg:py-10 xl:py-12">
-      <BackToCatalogLink
-        className="mb-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-secondary px-4 py-2.5 text-sm font-semibold text-secondary transition-colors hover:bg-secondary hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 active:bg-secondary/90 sm:mb-6 sm:w-fit sm:justify-start sm:py-3 md:min-w-[11rem]"
-      >
-        ← Back to products
-      </BackToCatalogLink>
+    <CatalogWidth className="flex min-w-0 flex-1 flex-col py-5 sm:py-7 lg:py-8 xl:py-10">
+      <ProductDetailBreadcrumbs productName={product.name} />
 
-      <div className="grid min-w-0 gap-6 sm:gap-8 lg:grid-cols-2 lg:items-start lg:gap-10 xl:gap-14">
-        <div className="relative mx-auto aspect-[4/3] w-full max-w-xl overflow-hidden rounded-lg border border-muted bg-muted sm:max-w-none sm:rounded-xl lg:mx-0 lg:max-w-none lg:aspect-square lg:sticky lg:top-[calc(5.5rem+env(safe-area-inset-top,0px))] xl:top-[calc(6.25rem+env(safe-area-inset-top,0px))] 2xl:top-28">
-          <CatalogProductImage
-            src={product.image}
-            alt={product.name}
-            fill
-            priority
-            width={700}
-            sizes="(max-width: 640px) 96vw, (max-width: 1024px) 92vw, (max-width: 1280px) 45vw, 560px"
-            className="object-cover"
-          />
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-5 sm:gap-6 lg:gap-8">
-          <header className="relative overflow-hidden rounded-2xl border border-secondary/[0.08] bg-gradient-to-br from-white to-secondary/[0.03] px-4 py-5 shadow-[0_1px_3px_rgba(15,76,105,0.05)] sm:rounded-[1.25rem] sm:px-6 sm:py-6 lg:px-7 lg:py-7">
-            <div
-              className="pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary via-primary/85 to-secondary/80"
-              aria-hidden
+      <article className="overflow-hidden rounded-2xl border border-secondary/[0.08] bg-white shadow-[0_8px_30px_-12px_rgba(15,76,105,0.18)]">
+        <div className="grid min-w-0 gap-8 p-5 sm:gap-10 sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-12 lg:p-10 xl:gap-14">
+          <div className="relative mx-auto aspect-square w-full max-w-lg overflow-hidden rounded-xl border border-secondary/[0.06] bg-[#fafafa] lg:sticky lg:top-[calc(5.5rem+env(safe-area-inset-top,0px))] lg:mx-0 lg:max-w-none xl:top-[calc(6.25rem+env(safe-area-inset-top,0px))]">
+            <CatalogProductImage
+              src={product.image}
+              alt={product.name}
+              fill
+              priority
+              width={700}
+              sizes="(max-width: 1024px) 92vw, 45vw"
+              className="object-contain p-4 sm:p-6"
             />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-secondary/48">
-              Product detail
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-5 sm:gap-6">
+            <header className="min-w-0 space-y-2">
+              <h1 className="text-balance text-2xl font-bold leading-tight tracking-tight text-secondary sm:text-3xl lg:text-[2rem] lg:leading-[1.2]">
+                {product.name}
+              </h1>
+              <p className="text-[15px] text-secondary/55 sm:text-base">
+                {categoryLine}
+              </p>
+            </header>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {brandBadge(product.brand)}
+              {stockLabel(product.stock)}
+            </div>
+
+            <p className="text-3xl font-bold tabular-nums tracking-tight text-primary sm:text-4xl">
+              {formatCatalogPrice(product.price)}
             </p>
-            <h1 className="mt-2 text-balance font-semibold tracking-tight text-secondary text-xl min-[360px]:text-2xl sm:text-3xl lg:text-4xl xl:text-[2.5rem] xl:leading-[1.12]">
-              {product.name}
-            </h1>
-          </header>
 
-          <dl className="rounded-lg border border-muted bg-surface px-3.5 py-1 sm:rounded-xl sm:px-5 sm:py-1">
-            <DetailRow label="Categories">
-              {product.categories.join(" · ")}
-            </DetailRow>
-            <DetailRow label="Brand">{brandBadge(product.brand)}</DetailRow>
-            <DetailRow label="Stock">{stockBlock(product.stock)}</DetailRow>
-            <DetailRow label="Price (PKR)">
-              <span className="inline-block text-xl font-semibold tabular-nums text-green-700 min-[380px]:text-2xl sm:text-3xl">
-                {formatCatalogPrice(product.price)}
-              </span>
-            </DetailRow>
-          </dl>
-
-          <section className="rounded-lg border border-muted bg-surface p-3.5 sm:rounded-xl sm:p-5 lg:p-6">
-            <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-secondary/70 sm:mb-3 sm:text-sm">
-              Description
-            </h2>
-            <p className="text-pretty text-sm leading-relaxed text-secondary/85 sm:text-base sm:leading-relaxed lg:max-w-prose lg:text-[17px] lg:leading-relaxed">
-              {product.description}
-            </p>
-          </section>
-
-          {product.specifications.length > 0 ? (
-            <section className="min-w-0">
-              <h2 className="mb-4 text-lg font-bold text-secondary sm:mb-5 sm:text-xl">
-                Specifications
+            <section className="min-w-0 border-t border-secondary/[0.08] pt-5 sm:pt-6">
+              <h2 className="mb-3 text-base font-bold text-secondary sm:text-lg">
+                About the Product
               </h2>
-              <div className="grid min-w-0 grid-cols-1 gap-x-10 md:grid-cols-2 md:gap-x-12 lg:gap-x-16">
-                <SpecColumn specs={specColumns.left} />
-                <SpecColumn specs={specColumns.right} />
-              </div>
+              <p className="text-pretty text-[15px] leading-relaxed text-secondary/80 sm:text-base sm:leading-7">
+                {product.description}
+              </p>
             </section>
-          ) : null}
+          </div>
         </div>
-      </div>
+
+        {product.specifications.length > 0 ? (
+          <section className="border-t border-secondary/[0.08] px-5 py-7 sm:px-7 sm:py-8 lg:px-10 lg:py-10">
+            <h2 className="mb-5 text-lg font-bold text-secondary sm:mb-6 sm:text-xl">
+              Specifications
+            </h2>
+            <div className="grid min-w-0 grid-cols-1 gap-x-12 md:grid-cols-2 md:gap-x-16 lg:gap-x-20">
+              <SpecColumn specs={specColumns.left} />
+              <SpecColumn specs={specColumns.right} />
+            </div>
+          </section>
+        ) : null}
+      </article>
     </CatalogWidth>
   );
 }
