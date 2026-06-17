@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { logoutAction } from "@/app/actions/auth";
+import { CatalogSearchSuggestions } from "@/components/catalog/CatalogSearchSuggestions";
 import { CatalogWidth } from "@/components/layout/CatalogWidth";
 import { CategoryMenu } from "@/components/layout/CategoryMenu";
 
@@ -180,11 +181,33 @@ function SearchIcon({ className }: { className?: string }) {
   );
 }
 
+function ClearSearchIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
 export function Header({ categories, sessionEmail }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchBarRef = useRef<HTMLDivElement>(null);
+  const [suggestionsDismissed, setSuggestionsDismissed] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const urlQ = searchParams.get("q") ?? "";
   const urlCategory = searchParams.get("category") ?? "all";
@@ -194,6 +217,11 @@ export function Header({ categories, sessionEmail }: HeaderProps) {
   useEffect(() => {
     setSearchValue(urlQ);
   }, [urlQ]);
+
+  const catalogPath =
+    pathname === "/" || pathname.startsWith("/client/product")
+      ? pathname
+      : "/";
 
   const categoryOptions = useMemo(
     () => [
@@ -221,11 +249,12 @@ export function Header({ categories, sessionEmail }: HeaderProps) {
 
     const qs = params.toString();
     startTransition(() => {
-      router.replace(qs ? `${pathname}?${qs}` : pathname);
+      router.replace(qs ? `${catalogPath}?${qs}` : catalogPath);
     });
   }
 
   function applyFiltersFromCatalog() {
+    setSuggestionsDismissed(true);
     pushCatalogParams({ q: searchValue, category: urlCategory });
   }
 
@@ -252,55 +281,101 @@ export function Header({ categories, sessionEmail }: HeaderProps) {
             </Link>
 
             <div className="flex min-w-0 w-full flex-col gap-3 sm:max-w-xl sm:flex-1 sm:flex-row sm:items-center sm:justify-end sm:gap-3 2xl:max-w-2xl">
-              <div className="flex min-w-0 w-full flex-1 flex-col overflow-hidden rounded-[14px] border border-muted bg-white shadow-sm ring-1 ring-black/[0.04] min-[420px]:min-h-12 min-[420px]:flex-row min-[420px]:flex-nowrap min-[420px]:rounded-full lg:min-h-[3rem]">
-                <label className="sr-only" htmlFor="catalog-search">
-                  Search products
-                </label>
-                <input
-                  id="catalog-search"
-                  type="search"
-                  name="q"
-                  autoComplete="off"
-                  placeholder="Search products, categories, brands…"
-                  value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      applyFiltersFromCatalog();
-                    }
-                  }}
-                  className="min-h-12 w-full min-w-0 border-0 border-b border-muted bg-transparent px-3 py-3 text-[15px] leading-snug text-secondary placeholder:text-secondary/45 outline-none min-[420px]:min-h-12 min-[420px]:flex-1 min-[420px]:border-b-0 min-[420px]:border-r min-[420px]:text-sm sm:min-h-[3rem] sm:pl-5 focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/35"
-                />
-
-                <div className="flex min-h-12 w-full min-w-0 min-[420px]:w-auto min-[420px]:shrink-0 sm:min-h-[3rem]">
-                  <div className="flex min-h-full min-w-0 flex-1 items-stretch border-muted bg-white min-[420px]:border-l">
-                    <span className="sr-only">
-                      Filter products by category
-                    </span>
-                    <CategoryMenu
-                      value={urlCategory === "" ? "all" : urlCategory}
-                      options={categoryOptions}
-                      disabled={isPending}
-                      onChange={(nextCat) =>
-                        pushCatalogParams({
-                          category: nextCat,
-                          q: searchValue,
-                        })
+              <div
+                ref={searchBarRef}
+                className="relative min-w-0 w-full flex-1"
+              >
+                <div className="flex min-w-0 w-full flex-col overflow-hidden rounded-[14px] border border-muted bg-white shadow-sm ring-1 ring-black/[0.04] min-[420px]:min-h-12 min-[420px]:flex-row min-[420px]:flex-nowrap min-[420px]:rounded-full lg:min-h-[3rem]">
+                  <div
+                    className={`relative flex min-h-12 min-w-0 w-full flex-1 items-center border-b border-muted min-[420px]:min-h-full min-[420px]:border-b-0 min-[420px]:border-r min-[420px]:border-muted sm:min-h-[3rem] ${
+                      searchFocused
+                        ? "z-10"
+                        : ""
+                    }`}
+                  >
+                    <label className="sr-only" htmlFor="catalog-search">
+                      Search products
+                    </label>
+                    <input
+                      ref={searchInputRef}
+                      id="catalog-search"
+                      type="search"
+                      name="q"
+                      autoComplete="off"
+                      role="combobox"
+                      aria-autocomplete="list"
+                      aria-expanded={
+                        !suggestionsDismissed &&
+                        searchValue.trim().length >= 2
                       }
+                      placeholder="Search products, categories, brands…"
+                      value={searchValue}
+                      onChange={(e) => {
+                        setSearchValue(e.target.value);
+                        setSuggestionsDismissed(false);
+                      }}
+                      onFocus={() => {
+                        setSearchFocused(true);
+                        setSuggestionsDismissed(false);
+                      }}
+                      onBlur={() => setSearchFocused(false)}
+                      className="min-h-12 w-full min-w-0 flex-1 border-0 bg-transparent py-3 pl-3 pr-10 text-[15px] leading-snug text-secondary outline-none placeholder:text-secondary/45 min-[420px]:min-h-full min-[420px]:text-sm sm:min-h-[3rem] sm:pl-5 sm:pr-11 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-decoration]:hidden"
                     />
+                    {searchValue ? (
+                      <button
+                        type="button"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setSearchValue("");
+                          setSuggestionsDismissed(false);
+                          searchInputRef.current?.focus();
+                        }}
+                        className="absolute right-2.5 flex size-7 shrink-0 items-center justify-center rounded-full text-secondary/50 transition-colors hover:bg-muted/70 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:right-3"
+                        aria-label="Clear search"
+                      >
+                        <ClearSearchIcon className="size-4" />
+                      </button>
+                    ) : null}
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => applyFiltersFromCatalog()}
-                    className="flex min-h-12 min-w-12 shrink-0 items-center justify-center bg-primary px-4 text-white transition-colors hover:bg-primary/90 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-offset-0 focus-visible:ring-white/40 disabled:opacity-60 min-[420px]:min-h-full min-[420px]:min-w-[3rem] sm:min-h-[3rem] sm:min-w-[3.25rem]"
-                    disabled={isPending}
-                    aria-label="Search"
-                  >
-                    <SearchIcon className="size-[1.125rem] min-[420px]:size-5" />
-                  </button>
+                  <div className="flex min-h-12 w-full min-w-0 min-[420px]:w-auto min-[420px]:shrink-0 sm:min-h-[3rem]">
+                    <div className="flex min-h-full min-w-0 flex-1 items-stretch bg-white">
+                      <span className="sr-only">
+                        Filter products by category
+                      </span>
+                      <CategoryMenu
+                        value={urlCategory === "" ? "all" : urlCategory}
+                        options={categoryOptions}
+                        disabled={isPending}
+                        onChange={(nextCat) =>
+                          pushCatalogParams({
+                            category: nextCat,
+                            q: searchValue,
+                          })
+                        }
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => applyFiltersFromCatalog()}
+                      className="flex min-h-12 min-w-12 shrink-0 items-center justify-center rounded-none bg-primary px-4 text-white transition-colors hover:bg-primary/90 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40 disabled:opacity-60 min-[420px]:min-h-full min-[420px]:min-w-[3rem] sm:min-h-[3rem] sm:min-w-[3.25rem]"
+                      disabled={isPending}
+                      aria-label="Search"
+                    >
+                      <SearchIcon className="size-[1.125rem] min-[420px]:size-5" />
+                    </button>
+                  </div>
                 </div>
+
+                <CatalogSearchSuggestions
+                  query={searchValue}
+                  inputRef={searchInputRef}
+                  dismissed={suggestionsDismissed}
+                  onClose={() => setSuggestionsDismissed(true)}
+                  onNavigateToProduct={() => setSuggestionsDismissed(true)}
+                  onSubmitSearch={applyFiltersFromCatalog}
+                />
               </div>
 
               {sessionEmail ? (
