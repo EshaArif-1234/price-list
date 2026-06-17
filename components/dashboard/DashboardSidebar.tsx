@@ -9,7 +9,6 @@ const NAV: NavItem[] = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/products", label: "Products" },
   { href: "/dashboard/categories", label: "Categories" },
-  { href: "/dashboard/specifications", label: "Specifications" },
   { href: "/dashboard/admin-users", label: "Admin accounts" },
 ];
 
@@ -20,9 +19,6 @@ function navActive(pathname: string, href: string): boolean {
   }
   if (href === "/dashboard/categories") {
     return pathname.startsWith("/dashboard/categories");
-  }
-  if (href === "/dashboard/specifications") {
-    return pathname.startsWith("/dashboard/specifications");
   }
   if (href === "/dashboard/admin-users") {
     return pathname.startsWith("/dashboard/admin-users");

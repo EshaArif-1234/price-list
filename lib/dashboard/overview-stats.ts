@@ -1,5 +1,4 @@
 import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
-import type { DashboardSpecificationRow } from "@/lib/dashboard/specification-catalog";
 import { parseStoredProducts } from "@/lib/dashboard/product-catalog";
 
 function normalizeCategoryName(name: string): string {
@@ -29,50 +28,18 @@ function readDashboardCategories(raw: string | null): DashboardCategoryRow[] {
   }
 }
 
-function readDashboardSpecifications(
-  raw: string | null,
-): DashboardSpecificationRow[] {
-  if (raw === null) return [];
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter(
-        (row): row is DashboardSpecificationRow =>
-          typeof row === "object" &&
-          row !== null &&
-          typeof (row as DashboardSpecificationRow).id === "string" &&
-          typeof (row as DashboardSpecificationRow).key === "string" &&
-          typeof (row as DashboardSpecificationRow).value === "string",
-      )
-      .map((row) => ({
-        id: row.id,
-        key: row.key.trim(),
-        value: row.value.trim(),
-      }))
-      .filter((row) => row.key.length > 0 || row.value.length > 0);
-  } catch {
-    return [];
-  }
-}
-
 export type DashboardOverviewCounts = {
   products: number;
   categories: number;
-  specifications: number;
 };
 
-/** Matches counts shown in Products / Categories / Specifications admin tabs (localStorage). */
+/** Matches counts shown in Products / Categories admin tabs (localStorage). */
 export function readDashboardOverviewCounts(storage: {
   productsRaw: string | null;
   categoriesRaw: string | null;
-  specificationsRaw: string | null;
 }): DashboardOverviewCounts {
   return {
     products: parseStoredProducts(storage.productsRaw).length,
     categories: readDashboardCategories(storage.categoriesRaw).length,
-    specifications: readDashboardSpecifications(
-      storage.specificationsRaw,
-    ).length,
   };
 }

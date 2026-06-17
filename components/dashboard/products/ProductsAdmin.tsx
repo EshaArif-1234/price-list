@@ -12,7 +12,6 @@ import {
   useState,
 } from "react";
 
-import type { DashboardSpecificationRow } from "@/lib/dashboard/specification-catalog";
 import type { DashboardCategoryRow } from "@/lib/dashboard/category-catalog";
 import { CATEGORY_STORAGE_KEY } from "@/lib/dashboard/category-catalog";
 import { compressImageFile } from "@/lib/dashboard/compress-image";
@@ -22,9 +21,19 @@ import {
   PRODUCT_LIST_PAGE_SIZE,
   PRODUCT_STORAGE_KEY,
 } from "@/lib/dashboard/product-catalog";
-import { SPECIFICATION_STORAGE_KEY } from "@/lib/dashboard/specification-catalog";
 import { formatProductPrice } from "@/lib/format-product-price";
 import type { Product, ProductBrand } from "@/lib/types/product";
+
+/** One name/value pair entered directly on the product form. */
+type ProductSpecRow = {
+  id: string;
+  label: string;
+  value: string;
+};
+
+function newProductSpecRow(): ProductSpecRow {
+  return { id: crypto.randomUUID(), label: "", value: "" };
+}
 
 /** Product images are capped at 5 MB for both upload modes. */
 const LOCAL_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
@@ -49,34 +58,6 @@ function normalizeStoredImage(raw: string): string {
   if (/^https?:\/\//i.test(image)) return image;
   if (image.startsWith("/")) return image;
   return `/${image.replace(/^\/+/, "")}`;
-}
-
-function loadSpecs(): DashboardSpecificationRow[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(SPECIFICATION_STORAGE_KEY);
-    if (raw === null) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    const rows = parsed
-      .filter(
-        (row): row is DashboardSpecificationRow =>
-          typeof row === "object" &&
-          row !== null &&
-          typeof (row as DashboardSpecificationRow).id === "string" &&
-          typeof (row as DashboardSpecificationRow).key === "string" &&
-          typeof (row as DashboardSpecificationRow).value === "string",
-      )
-      .map((row) => ({
-        id: row.id,
-        key: row.key.trim(),
-        value: row.value.trim(),
-      }))
-      .filter((row) => row.key.length > 0 && row.value.length > 0);
-    return rows.length ? rows : [];
-  } catch {
-    return [];
-  }
 }
 
 function loadCategoryNames(): string[] {
@@ -322,6 +303,26 @@ function IconCheckCircle({ className }: { className?: string }) {
   );
 }
 
+function IconImage({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <path d="m21 15-5-5L5 21" />
+    </svg>
+  );
+}
+
 function IconPackage({ className }: { className?: string }) {
   return (
     <svg
@@ -418,8 +419,6 @@ export function ProductsAdmin() {
     message: string;
   } | null>(null);
 
-  const [specOptions, setSpecOptions] =
-    useState<DashboardSpecificationRow[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
 
   const [imageInput, setImageInput] = useState("");
@@ -432,11 +431,8 @@ export function ProductsAdmin() {
   );
   const [brandInput, setBrandInput] = useState<ProductBrand>("Ambassador");
   const [activeInput, setActiveInput] = useState(true);
-  const [selectedSpecIds, setSelectedSpecIds] = useState<string[]>([]);
-  /** Value per specification template id (entered per product). */
-  const [specValuesById, setSpecValuesById] = useState<Record<string, string>>(
-    {},
-  );
+  const [categoryFilterInput, setCategoryFilterInput] = useState("");
+  const [productSpecRows, setProductSpecRows] = useState<ProductSpecRow[]>([]);
 
   const [activeSavingId, setActiveSavingId] = useState<string | null>(null);
 
@@ -481,16 +477,11 @@ export function ProductsAdmin() {
 
   const refreshLists = useCallback(() => {
     if (persistBackend !== "api") {
-      setSpecOptions(loadSpecs());
       setCategoryOptions(loadCategoryNames());
       return;
     }
-    void Promise.all([
-      dashboardGet<DashboardSpecificationRow[]>("/api/dashboard/specifications"),
-      dashboardGet<DashboardCategoryRow[]>("/api/dashboard/categories"),
-    ])
-      .then(([specs, cats]) => {
-        setSpecOptions(specs);
+    void dashboardGet<DashboardCategoryRow[]>("/api/dashboard/categories")
+      .then((cats) => {
         setCategoryOptions(
           cats.map((c) => c.name).sort((a, b) => a.localeCompare(b)),
         );
@@ -571,6 +562,14 @@ export function ProductsAdmin() {
     return [...s].sort((a, b) => a.localeCompare(b));
   }, [categoryOptions, editingProduct]);
 
+  const filteredCategoryCheckboxOptions = useMemo(() => {
+    const q = categoryFilterInput.trim().toLowerCase();
+    if (!q) return categoryCheckboxOptions;
+    return categoryCheckboxOptions.filter((c) =>
+      c.toLowerCase().includes(q),
+    );
+  }, [categoryCheckboxOptions, categoryFilterInput]);
+
   const pageSize = PRODUCT_LIST_PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
 
@@ -642,8 +641,8 @@ export function ProductsAdmin() {
     setSelectedCategoryNames(catFallback.length ? [catFallback[0]] : []);
     setBrandInput("Ambassador");
     setActiveInput(true);
-    setSelectedSpecIds([]);
-    setSpecValuesById({});
+    setCategoryFilterInput("");
+    setProductSpecRows([newProductSpecRow()]);
     setFormError(null);
   }
 
@@ -654,13 +653,11 @@ export function ProductsAdmin() {
 
     if (persistBackend === "api") {
       try {
-        const [cats, specs] = await Promise.all([
-          dashboardGet<DashboardCategoryRow[]>("/api/dashboard/categories"),
-          dashboardGet<DashboardSpecificationRow[]>("/api/dashboard/specifications"),
-        ]);
+        const cats = await dashboardGet<DashboardCategoryRow[]>(
+          "/api/dashboard/categories",
+        );
         const names = cats.map((c) => c.name).sort((a, b) => a.localeCompare(b));
         setCategoryOptions(names);
-        setSpecOptions(specs);
         resetForm(names);
       } catch {
         refreshLists();
@@ -682,22 +679,7 @@ export function ProductsAdmin() {
     setUploadingImage(false);
     setUploadProgress(null);
 
-    let specs: DashboardSpecificationRow[];
-    if (persistBackend === "api") {
-      try {
-        specs = await dashboardGet<DashboardSpecificationRow[]>(
-          "/api/dashboard/specifications",
-        );
-        setSpecOptions(specs);
-      } catch {
-        specs = [];
-        setSpecOptions([]);
-      }
-      refreshLists();
-    } else {
-      refreshLists();
-      specs = loadSpecs();
-    }
+    refreshLists();
 
     setEditingId(p.id);
     setImageInput(p.image);
@@ -707,26 +689,15 @@ export function ProductsAdmin() {
     setPriceInput(String(p.price));
     setSelectedCategoryNames([...p.categories]);
     setBrandInput(p.brand);
-    const matchedIds = specs
-      .filter((row) =>
-        p.specifications.some(
-          (ps) =>
-            ps.label.trim().toLowerCase() === row.key.toLowerCase(),
-        ),
-      )
-      .map((r) => r.id);
-
-    const initialSpecValues: Record<string, string> = {};
-    for (const row of specs) {
-      if (!matchedIds.includes(row.id)) continue;
-      const ps = p.specifications.find(
-        (x) => x.label.trim().toLowerCase() === row.key.toLowerCase(),
-      );
-      if (ps) initialSpecValues[row.id] = ps.value;
-    }
-
-    setSelectedSpecIds(matchedIds);
-    setSpecValuesById(initialSpecValues);
+    setProductSpecRows(
+      p.specifications.length > 0
+        ? p.specifications.map((s) => ({
+            id: crypto.randomUUID(),
+            label: s.label,
+            value: s.value,
+          }))
+        : [],
+    );
     setActiveInput(p.active !== false);
     setFormError(null);
     if (imageFileInputRef.current) imageFileInputRef.current.value = "";
@@ -845,25 +816,18 @@ export function ProductsAdmin() {
       return;
     }
 
-    let specsRows: DashboardSpecificationRow[];
-    try {
-      specsRows =
-        persistBackend === "api"
-          ? await dashboardGet<DashboardSpecificationRow[]>(
-              "/api/dashboard/specifications",
-            )
-          : loadSpecs();
-    } catch {
-      setFormError("Could not load specifications.");
+    const specifications = productSpecRows
+      .map((row) => ({
+        label: row.label.trim(),
+        value: row.value.trim(),
+      }))
+      .filter((row) => row.label.length > 0);
+
+    const specLabels = specifications.map((s) => s.label.toLowerCase());
+    if (new Set(specLabels).size !== specLabels.length) {
+      setFormError("Each specification name must be unique on this product.");
       return;
     }
-
-    const specifications = specsRows
-      .filter((row) => selectedSpecIds.includes(row.id))
-      .map((row) => ({
-        label: row.key,
-        value: (specValuesById[row.id] ?? "").trim(),
-      }));
 
     setFormError(null);
 
@@ -1089,7 +1053,7 @@ export function ProductsAdmin() {
     "min-h-11 w-full rounded-xl border border-secondary/12 bg-white px-3.5 py-2.5 text-[15px] text-secondary outline-none ring-primary transition-[box-shadow,border-color] placeholder:text-secondary/35 focus-visible:border-transparent focus-visible:ring-2";
 
   const textareaClass =
-    "min-h-[100px] w-full rounded-xl border border-secondary/12 bg-white px-3.5 py-2.5 text-[15px] text-secondary outline-none ring-primary transition-[box-shadow,border-color] placeholder:text-secondary/35 focus-visible:border-transparent focus-visible:ring-2";
+    "min-h-[4.5rem] w-full rounded-xl border border-secondary/12 bg-white px-3.5 py-2.5 text-[15px] text-secondary outline-none ring-primary transition-[box-shadow,border-color] placeholder:text-secondary/35 focus-visible:border-transparent focus-visible:ring-2";
 
   function toggleCategory(name: string) {
     setSelectedCategoryNames((prev) =>
@@ -1100,32 +1064,44 @@ export function ProductsAdmin() {
     setFormError(null);
   }
 
-  function toggleSpec(id: string) {
-    setSelectedSpecIds((prev) => {
-      if (prev.includes(id)) {
-        setSpecValuesById((vals) => {
-          const next = { ...vals };
-          delete next[id];
-          return next;
-        });
-        return prev.filter((x) => x !== id);
-      }
-      const row = specOptions.find((r) => r.id === id);
-      setSpecValuesById((vals) => ({
-        ...vals,
-        [id]: vals[id] ?? row?.value?.trim() ?? "",
-      }));
-      return [...prev, id];
-    });
+  function addProductSpecRow() {
+    setProductSpecRows((prev) => [...prev, newProductSpecRow()]);
     setFormError(null);
   }
 
-  function setSpecValue(id: string, value: string) {
-    setSpecValuesById((prev) => ({ ...prev, [id]: value }));
+  function removeProductSpecRow(id: string) {
+    setProductSpecRows((prev) => prev.filter((row) => row.id !== id));
+    setFormError(null);
   }
+
+  function updateProductSpecRow(
+    id: string,
+    field: "label" | "value",
+    next: string,
+  ) {
+    setProductSpecRows((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: next } : row)),
+    );
+    setFormError(null);
+  }
+
+  const specRowCount = productSpecRows.length;
 
   const brandBtn =
     "flex-1 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-[border-color,background-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
+
+  const modalSectionClass =
+    "rounded-xl bg-muted/40 p-4 sm:p-5";
+
+  const modalPrimaryBtn =
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-secondary px-5 py-2.5 text-sm font-semibold text-white shadow-[0_1px_2px_rgba(15,76,105,0.22)] transition-[filter,transform] hover:brightness-[1.05] active:translate-y-[0.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-40";
+
+  const imageMaxMb =
+    persistBackend === "api"
+      ? CLOUDINARY_IMAGE_MAX_BYTES / (1024 * 1024)
+      : LOCAL_IMAGE_MAX_BYTES / (1024 * 1024);
+
+  const hasChosenImage = imageInput.trim().length > 0;
 
   return (
     <div className="mx-auto min-w-0 w-full max-w-7xl pb-8 sm:pb-10">
@@ -1569,32 +1545,31 @@ export function ProductsAdmin() {
       <dialog
         ref={dialogRef}
         aria-labelledby="product-form-title"
-        className="fixed left-1/2 top-1/2 z-[100] flex h-[min(92dvh,calc(100vh-1rem))] max-h-[min(92dvh,calc(100vh-1rem))] w-[calc(100vw-1.25rem)] max-w-[520px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-secondary/12 bg-white p-0 shadow-[0_24px_48px_-12px_rgba(15,76,105,0.28)] backdrop:bg-secondary/35 backdrop:backdrop-blur-md sm:w-[min(520px,calc(100vw-1.75rem))]"
+        className="fixed left-1/2 top-1/2 z-[100] flex w-[calc(100vw-1.25rem)] max-h-[min(88dvh,calc(100vh-1rem))] max-w-[min(920px,calc(100vw-1.5rem))] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-2xl border border-secondary/12 bg-white p-0 shadow-[0_24px_48px_-12px_rgba(15,76,105,0.28)] backdrop:bg-secondary/35 backdrop:backdrop-blur-md"
         onCancel={(ev) => {
           ev.preventDefault();
           closeModal();
         }}
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <div className="pointer-events-none h-1 shrink-0 bg-gradient-to-r from-primary via-primary/90 to-secondary" />
-          <div className="flex shrink-0 items-start justify-between gap-3 px-4 pb-2 pt-4 sm:px-6 sm:pt-5">
-            <div>
+        <div className="flex max-h-[min(88dvh,calc(100vh-1rem))] min-h-0 flex-col overflow-hidden">
+          <div className="flex shrink-0 items-start justify-between gap-3 border-b border-secondary/[0.06] px-4 py-4 sm:px-6 sm:py-5">
+            <div className="min-w-0">
               <h2
                 id="product-form-title"
                 className="text-lg font-semibold tracking-tight text-secondary sm:text-xl"
               >
-                {editingId ? "Edit product" : "Add product"}
+                {editingId ? "Edit Product" : "Add New Product"}
               </h2>
-              <p className="mt-1 text-[13px] text-secondary/52">
-                {persistBackend === "api"
-                  ? `Images upload to Cloudinary (up to ${CLOUDINARY_IMAGE_MAX_BYTES / (1024 * 1024)} MB). Only the image URL is saved in MongoDB.`
-                  : `Choose an image from your computer (max ${LOCAL_IMAGE_MAX_BYTES / (1024 * 1024)} MB). Stored as a data URL in this browser.`}
+              <p className="mt-1 text-[13px] leading-snug text-secondary/52">
+                {editingId
+                  ? "Update the product details below."
+                  : "Fill in the details to list a new product"}
               </p>
             </div>
             <button
               type="button"
               onClick={closeModal}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-secondary/45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:size-10"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-secondary/45 transition-colors hover:bg-muted/50 hover:text-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
               aria-label="Close"
             >
               <IconX className="size-[18px]" />
@@ -1605,7 +1580,7 @@ export function ProductsAdmin() {
             onSubmit={handleSave}
             className="flex min-h-0 flex-1 flex-col overflow-hidden"
           >
-            <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-3 pt-2 sm:px-6 [scrollbar-gutter:stable]">
+            <div className="min-h-0 min-w-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5 [scrollbar-gutter:stable]">
               {formError ? (
                 <p
                   className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[13px] font-medium text-red-800"
@@ -1615,10 +1590,10 @@ export function ProductsAdmin() {
                 </p>
               ) : null}
 
-              <div>
-                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                  Image <span className="text-red-500">*</span>
-                </span>
+              <section className={modalSectionClass}>
+                <h3 className="mb-4 text-[15px] font-semibold text-secondary">
+                  Media Upload
+                </h3>
                 <input
                   ref={imageFileInputRef}
                   type="file"
@@ -1628,256 +1603,309 @@ export function ProductsAdmin() {
                   aria-label="Choose image file from computer"
                   onChange={onProductImageFileChange}
                 />
+                <p className="mb-2 text-[13px] font-medium text-secondary">
+                  Product Image <span className="text-red-500">*</span>
+                </p>
                 <button
                   type="button"
                   disabled={uploadingImage}
                   onClick={() => imageFileInputRef.current?.click()}
-                  className={`${ghostBtn} ${touchFullSmAuto}`}
+                  className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-secondary/20 bg-white/70 px-4 py-6 transition-[border-color,background-color] hover:border-secondary/35 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {uploadingImage ? "Uploading…" : "Choose from computer"}
-                </button>
-                <p className="mt-2 text-[12px] text-secondary/48">
-                  {persistBackend === "api"
-                    ? "PNG, JPG, WebP — uploads require Cloudinary credentials on the server."
-                    : "PNG, JPG, WebP, GIF, SVG — choose another file anytime to replace."}
-                </p>
-                {uploadingImage ? (
-                  <p className="mt-2 text-[12px] font-medium text-secondary/55">
-                    {persistBackend === "api"
-                      ? uploadProgress !== null
-                        ? `Uploading… ${uploadProgress}%`
-                        : "Optimizing image…"
-                      : "Optimizing image…"}
-                  </p>
-                ) : imageInput.startsWith("data:image/") ? (
-                  <p className="mt-2 text-[12px] font-medium text-secondary/55">
-                    Using file from computer (browser storage).
-                  </p>
-                ) : /^https?:\/\//i.test(imageInput.trim()) ? (
-                  <p className="mt-2 text-[12px] font-medium text-secondary/55">
-                    Using hosted image URL.
-                  </p>
-                ) : imageInput.trim().length > 0 ? (
-                  <p className="mt-2 text-[12px] font-medium text-secondary/55">
-                    Current catalog image — choose a file above to replace it.
-                  </p>
-                ) : null}
-                <div className="relative mx-auto mt-3 aspect-square w-full max-w-[140px] overflow-hidden rounded-xl border border-secondary/10 bg-muted/30">
-                  <Image
-                    src={normalizeStoredImage(imageInput)}
-                    alt="Preview"
-                    fill
-                    className="object-cover"
-                    unoptimized
-                    onError={() => {}}
-                  />
-                  {uploadingImage && uploadProgress !== null ? (
-                    <div className="absolute inset-x-0 bottom-0 bg-secondary/75 px-2 pb-1.5 pt-2 backdrop-blur-sm">
-                      <div className="mb-1 flex items-center justify-between text-[10px] font-semibold text-white">
-                        <span>Uploading</span>
-                        <span className="tabular-nums">{uploadProgress}%</span>
-                      </div>
-                      <div
-                        className="h-1.5 w-full overflow-hidden rounded-full bg-white/30"
-                        role="progressbar"
-                        aria-valuenow={uploadProgress}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                      >
-                        <div
-                          className="h-full rounded-full bg-white transition-[width] duration-200 ease-out"
-                          style={{ width: `${uploadProgress}%` }}
-                        />
-                      </div>
+                  {hasChosenImage ? (
+                    <div className="relative aspect-square w-full max-w-[160px] overflow-hidden rounded-lg">
+                      <Image
+                        src={normalizeStoredImage(imageInput)}
+                        alt="Preview"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                        onError={() => {}}
+                      />
+                      {uploadingImage && uploadProgress !== null ? (
+                        <div className="absolute inset-x-0 bottom-0 bg-secondary/80 px-2 pb-1.5 pt-2 backdrop-blur-sm">
+                          <div className="mb-1 flex items-center justify-between text-[10px] font-semibold text-white">
+                            <span>Uploading</span>
+                            <span className="tabular-nums">{uploadProgress}%</span>
+                          </div>
+                          <div
+                            className="h-1.5 w-full overflow-hidden rounded-full bg-white/30"
+                            role="progressbar"
+                            aria-valuenow={uploadProgress}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                          >
+                            <div
+                              className="h-full rounded-full bg-white transition-[width] duration-200 ease-out"
+                              style={{ width: `${uploadProgress}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                  ) : null}
-                </div>
-              </div>
+                  ) : (
+                    <IconImage className="size-10 text-secondary/35" />
+                  )}
+                  {!uploadingImage ? (
+                    <span className="text-[13px] font-medium text-secondary/70">
+                      <span className="text-primary">+ Add Image</span>
+                    </span>
+                  ) : (
+                    <span className="text-[13px] font-medium text-secondary/55">
+                      {persistBackend === "api" && uploadProgress !== null
+                        ? `Uploading ${uploadProgress}%…`
+                        : "Processing…"}
+                    </span>
+                  )}
+                </button>
+                <p className="mt-2 text-center text-[11px] text-secondary/45">
+                  JPEG · PNG · WebP · max {imageMaxMb} MB
+                </p>
+              </section>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                    Name <span className="text-red-500">*</span>
+              <section className={`${modalSectionClass} space-y-4`}>
+                <h3 className="text-[15px] font-semibold text-secondary">
+                  Basic Information
+                </h3>
+
+                <div>
+                  <label
+                    htmlFor="product-name"
+                    className="mb-1.5 block text-[13px] font-medium text-secondary"
+                  >
+                    Product Name <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="product-name"
                     value={nameInput}
                     onChange={(e) => {
                       setNameInput(e.target.value);
                       setFormError(null);
                     }}
+                    placeholder="e.g. Stainless Steel Commercial Fryer"
                     className={inputClass}
                     required
                   />
                 </div>
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                    Price (PKR) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={priceInput}
-                    onChange={(e) => setPriceInput(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                    Stock <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    value={stockInput}
-                    onChange={(e) => setStockInput(e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-                <fieldset className="sm:col-span-2">
-                  <legend className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                    Categories (multi-select)
+
+                <fieldset>
+                  <legend className="mb-1.5 text-[13px] font-medium text-secondary">
+                    Categories <span className="text-red-500">*</span>
+                    <span className="font-normal text-secondary/50"> — multi</span>
                   </legend>
-                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-secondary/10  p-3">
-                    {categoryCheckboxOptions.map((c) => (
-                      <label
-                        key={c}
-                        className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-[13px] hover:bg-white"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedCategoryNames.includes(c)}
-                          onChange={() => toggleCategory(c)}
-                          className="mt-1 size-4 shrink-0 rounded border-secondary/25 text-primary focus:ring-primary"
-                        />
-                        <span className="text-secondary">{c}</span>
-                      </label>
-                    ))}
+                  <input
+                    type="search"
+                    value={categoryFilterInput}
+                    onChange={(e) => setCategoryFilterInput(e.target.value)}
+                    placeholder="Filter..."
+                    className={`${inputClass} mb-2`}
+                    aria-label="Filter categories"
+                  />
+                  <div className="max-h-36 overflow-y-auto rounded-xl border border-secondary/10 bg-white p-2 sm:max-h-40">
+                    <div className="grid grid-cols-1 gap-x-3 sm:grid-cols-2">
+                      {filteredCategoryCheckboxOptions.map((c) => (
+                        <label
+                          key={c}
+                          className="flex cursor-pointer items-start gap-2 rounded-lg px-2 py-1.5 text-[13px] hover:bg-muted/40"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCategoryNames.includes(c)}
+                            onChange={() => toggleCategory(c)}
+                            className="mt-0.5 size-4 shrink-0 rounded border-secondary/25 text-primary focus:ring-primary"
+                          />
+                          <span className="text-secondary">{c}</span>
+                        </label>
+                      ))}
+                    </div>
                     {categoryCheckboxOptions.length === 0 ? (
                       <p className="text-[13px] text-secondary/50">
                         Add categories under Dashboard → Categories first.
                       </p>
+                    ) : filteredCategoryCheckboxOptions.length === 0 ? (
+                      <p className="text-[13px] text-secondary/50">
+                        No categories match your filter.
+                      </p>
                     ) : null}
                   </div>
                 </fieldset>
-              </div>
 
-              <div>
-                <span className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                  Brand
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setBrandInput("Ambassador")}
-                    className={`${brandBtn} ${
-                      brandInput === "Ambassador"
-                        ? "border-primary bg-primary text-white"
-                        : "border-secondary/15 bg-white text-secondary hover:border-secondary/25"
-                    }`}
-                  >
-                    Ambassador
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBrandInput("Imported")}
-                    className={`${brandBtn} ${
-                      brandInput === "Imported"
-                        ? "border-primary bg-primary text-white"
-                        : "border-secondary/15 bg-white text-secondary hover:border-secondary/25"
-                    }`}
-                  >
-                    Imported
-                  </button>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="product-price"
+                      className="mb-1.5 block text-[13px] font-medium text-secondary"
+                    >
+                      Price (PKR) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="product-price"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={priceInput}
+                      onChange={(e) => setPriceInput(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="product-stock"
+                      className="mb-1.5 block text-[13px] font-medium text-secondary"
+                    >
+                      Stock <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="product-stock"
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={stockInput}
+                      onChange={(e) => setStockInput(e.target.value)}
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                  Description <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={descriptionInput}
-                  onChange={(e) => setDescriptionInput(e.target.value)}
-                  className={textareaClass}
-                  rows={4}
-                />
-              </div>
+                <div>
+                  <span className="mb-1.5 block text-[13px] font-medium text-secondary">
+                    Brand <span className="text-red-500">*</span>
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBrandInput("Ambassador")}
+                      className={`${brandBtn} ${
+                        brandInput === "Ambassador"
+                          ? "border-primary bg-primary text-white"
+                          : "border-secondary/15 bg-white text-secondary hover:border-secondary/25"
+                      }`}
+                    >
+                      Ambassador
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setBrandInput("Imported")}
+                      className={`${brandBtn} ${
+                        brandInput === "Imported"
+                          ? "border-primary bg-primary text-white"
+                          : "border-secondary/15 bg-white text-secondary hover:border-secondary/25"
+                      }`}
+                    >
+                      Imported
+                    </button>
+                  </div>
+                </div>
 
-              <div className="rounded-xl border border-secondary/10  px-3 py-3">
-                <label className="flex cursor-pointer items-start gap-3">
+                <div>
+                  <label
+                    htmlFor="product-description"
+                    className="mb-1.5 block text-[13px] font-medium text-secondary"
+                  >
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    id="product-description"
+                    value={descriptionInput}
+                    onChange={(e) => setDescriptionInput(e.target.value)}
+                    className={textareaClass}
+                    rows={3}
+                  />
+                </div>
+
+                <label className="flex cursor-pointer items-center gap-2.5">
                   <input
                     type="checkbox"
                     checked={activeInput}
                     onChange={(e) => setActiveInput(e.target.checked)}
-                    className="mt-1 size-4 shrink-0 rounded border-secondary/25 text-primary focus:ring-primary"
+                    className="size-4 rounded border-secondary/25 text-primary focus:ring-primary"
                   />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium text-secondary">
-                      Visible on storefront
-                    </span>
-                    <span className="mt-0.5 block text-[12px] leading-relaxed text-secondary/48">
-                      Uncheck to hide this product from the public catalog without
-                      deleting it.
-                    </span>
+                  <span className="text-[13px] text-secondary">
+                    Visible on storefront
                   </span>
                 </label>
-              </div>
+              </section>
 
-              <fieldset>
-                <legend className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
-                  Specifications (optional)
-                </legend>
-                <p className="mb-3 text-[12px] leading-relaxed text-secondary/48">
-                  Choose labels from your library, then enter the value for this
-                  product.
-                </p>
-                <div className="max-h-56 space-y-3 overflow-y-auto rounded-xl border border-secondary/10  p-3">
-                  {specOptions.map((row) => (
-                    <div key={row.id} className="rounded-lg px-2 py-1">
-                      <label className="flex cursor-pointer items-start gap-2 text-[13px] hover:bg-white">
-                        <input
-                          type="checkbox"
-                          checked={selectedSpecIds.includes(row.id)}
-                          onChange={() => toggleSpec(row.id)}
-                          className="mt-1 size-4 shrink-0 rounded border-secondary/25 text-primary focus:ring-primary"
-                        />
-                        <span className="min-w-0 flex-1 font-medium text-secondary">
-                          {row.key}
-                          {row.value.trim() ? (
-                            <span className="mt-0.5 block font-normal text-secondary/50">
-                              Template hint: {row.value}
-                            </span>
-                          ) : null}
-                        </span>
-                      </label>
-                      {selectedSpecIds.includes(row.id) ? (
-                        <label className="mt-2 block pl-6">
-                          <span className="sr-only">Value for {row.key}</span>
-                          <input
-                            type="text"
-                            value={specValuesById[row.id] ?? ""}
-                            onChange={(e) =>
-                              setSpecValue(row.id, e.target.value)
-                            }
-                            placeholder={`${row.key} — value for this product`}
-                            className={`${inputClass} text-[13px]`}
-                          />
-                        </label>
-                      ) : null}
-                    </div>
-                  ))}
-                  {specOptions.length === 0 ? (
-                    <p className="text-[13px] text-secondary/50">
-                      No specification templates — add some under Specifications.
+              <section className={modalSectionClass}>
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="text-[15px] font-semibold text-secondary">
+                      Technical Specifications
+                    </h3>
+                    <p className="mt-0.5 text-[12px] text-secondary/48">
+                      Optional name/value pairs (e.g. Material, BTU, Size).
                     </p>
-                  ) : null}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={addProductSpecRow}
+                    className={`${ghostBtn} shrink-0`}
+                  >
+                    <IconPlus className="size-[18px] opacity-95" />
+                    Add Spec
+                  </button>
                 </div>
-              </fieldset>
+
+                {productSpecRows.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="hidden grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-3 px-1 sm:grid">
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
+                        Name
+                      </span>
+                      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary/42">
+                        Value
+                      </span>
+                      <span className="sr-only">Remove</span>
+                    </div>
+                    {productSpecRows.map((row) => (
+                      <div
+                        key={row.id}
+                        className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center sm:gap-3"
+                      >
+                        <input
+                          type="text"
+                          value={row.label}
+                          onChange={(e) =>
+                            updateProductSpecRow(row.id, "label", e.target.value)
+                          }
+                          placeholder="e.g. Material"
+                          aria-label="Specification name"
+                          className={`${inputClass} min-h-10 bg-white py-2 text-[14px]`}
+                        />
+                        <input
+                          type="text"
+                          value={row.value}
+                          onChange={(e) =>
+                            updateProductSpecRow(row.id, "value", e.target.value)
+                          }
+                          placeholder="e.g. Stainless Steel"
+                          aria-label="Specification value"
+                          className={`${inputClass} min-h-10 bg-white py-2 text-[14px]`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeProductSpecRow(row.id)}
+                          className={`${iconDeleteBtn} sm:size-10`}
+                          aria-label={`Remove ${row.label || "specification"}`}
+                        >
+                          <IconTrash className="size-[17px]" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[13px] text-secondary/50">
+                    No specs yet — click Add Spec.
+                  </p>
+                )}
+
+                <p className="mt-3 text-[12px] text-secondary/45">
+                  {specRowCount === 1 ? "1 spec added" : `${specRowCount} specs added`}
+                </p>
+              </section>
             </div>
 
-            <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-2 sm:px-6 sm:pb-4">
+            <div className="flex shrink-0 flex-col gap-2 border-t border-secondary/[0.06] bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:gap-3 sm:px-6">
               <button
                 type="button"
                 onClick={closeModal}
@@ -1888,9 +1916,9 @@ export function ProductsAdmin() {
               <button
                 type="submit"
                 disabled={uploadingImage}
-                className={`${primaryBtn} ${touchFullSmAuto}`}
+                className={`${modalPrimaryBtn} ${touchFullSmAuto}`}
               >
-                {editingId ? "Save product" : "Create product"}
+                {editingId ? "Save Product" : "Add Product"}
               </button>
             </div>
           </form>

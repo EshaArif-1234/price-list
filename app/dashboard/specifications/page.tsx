@@ -1,13 +1,6 @@
-import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 
-import { SpecificationsAdmin } from "@/components/dashboard/specifications/SpecificationsAdmin";
-
-export const metadata: Metadata = {
-  title: "Specifications — Dashboard",
-  description:
-    "Manage reusable specification labels for products (values are set per product).",
-};
-
-export default function DashboardSpecificationsPage() {
-  return <SpecificationsAdmin />;
+/** Specifications are managed inline on each product — no separate page. */
+export default function SpecificationsPage() {
+  redirect("/dashboard/products");
 }
