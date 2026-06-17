@@ -7,7 +7,7 @@ import { BackToCatalogLink } from "@/components/catalog/BackToCatalogLink";
 import { getStockDetailText } from "@/lib/catalog/stock-status";
 import { getCatalogProductById } from "@/lib/catalog/server-catalog";
 import { formatCatalogPrice } from "@/lib/format-product-price";
-import type { ProductBrand } from "@/lib/types/product";
+import type { ProductBrand, ProductSpecification } from "@/lib/types/product";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -67,10 +67,42 @@ function DetailRow({
   );
 }
 
+function splitSpecifications(specs: ProductSpecification[]) {
+  const midpoint = Math.ceil(specs.length / 2);
+  return {
+    left: specs.slice(0, midpoint),
+    right: specs.slice(midpoint),
+  };
+}
+
+function SpecColumn({ specs }: { specs: ProductSpecification[] }) {
+  if (specs.length === 0) return null;
+
+  return (
+    <dl className="min-w-0">
+      {specs.map((spec, index) => (
+        <div
+          key={`${spec.label}-${index}`}
+          className="flex items-baseline justify-between gap-x-4 border-b border-secondary/10 py-3 last:border-b-0"
+        >
+          <dt className="shrink-0 text-[13px] font-bold text-secondary sm:text-sm">
+            {spec.label}:
+          </dt>
+          <dd className="min-w-0 text-right text-[13px] leading-snug text-secondary/90 sm:text-sm">
+            {spec.value.trim() ? spec.value : "—"}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 export default async function ProductDetailPage({ params }: PageProps) {
   const { id } = await params;
   const product = await getCatalogProductById(id);
   if (!product) notFound();
+
+  const specColumns = splitSpecifications(product.specifications);
 
   return (
     <CatalogWidth className="flex min-w-0 flex-1 flex-col py-5 sm:py-7 lg:py-10 xl:py-12">
@@ -130,25 +162,14 @@ export default async function ProductDetailPage({ params }: PageProps) {
           </section>
 
           {product.specifications.length > 0 ? (
-            <section className="rounded-lg border border-muted bg-surface p-3.5 sm:rounded-xl sm:p-5 lg:p-6">
-              <h2 className="mb-3 border-b border-muted pb-2 text-base font-semibold text-secondary sm:mb-4 sm:pb-3 sm:text-lg">
+            <section className="min-w-0">
+              <h2 className="mb-4 text-lg font-bold text-secondary sm:mb-5 sm:text-xl">
                 Specifications
               </h2>
-              <dl className="grid min-w-0 gap-0">
-                {product.specifications.map((spec, index) => (
-                  <div
-                    key={`${product.id}-spec-${index}`}
-                    className="flex flex-col gap-1 border-b border-muted py-2.5 last:border-b-0 sm:grid sm:grid-cols-[minmax(7rem,34%)_1fr] sm:items-start sm:gap-x-4 sm:py-3 md:grid-cols-[minmax(10rem,38%)_1fr] md:gap-x-8 lg:items-baseline"
-                  >
-                    <dt className="text-xs font-semibold text-secondary sm:text-sm">
-                      {spec.label}
-                    </dt>
-                    <dd className="min-w-0 break-words text-sm leading-relaxed text-secondary/85 hyphens-auto sm:text-base">
-                      {spec.value.trim() ? spec.value : "—"}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+              <div className="grid min-w-0 grid-cols-1 gap-x-10 md:grid-cols-2 md:gap-x-12 lg:gap-x-16">
+                <SpecColumn specs={specColumns.left} />
+                <SpecColumn specs={specColumns.right} />
+              </div>
             </section>
           ) : null}
         </div>
